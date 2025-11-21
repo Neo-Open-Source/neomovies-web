@@ -35,20 +35,16 @@ class FavoritesCache {
    * Инициализирует кеш и запускает синхронизацию
    */
   async initialize(): Promise<void> {
-    console.log('[FavoritesCache] Initializing...')
     this.loadFromStorage()
     
     // Если кеш пуст, загружаем с сервера
     if (!this.cache) {
-      console.log('[FavoritesCache] Cache is empty, fetching from server...')
       await this.getFavorites(true)
     } else {
-      console.log('[FavoritesCache] Cache loaded from storage, syncing...')
       await this.syncIfNeeded()
     }
     
     this.startAutoSync()
-    console.log('[FavoritesCache] Initialization complete')
   }
 
   /**
@@ -61,7 +57,6 @@ class FavoritesCache {
         this.cache = JSON.parse(stored)
       }
     } catch (error) {
-      console.error('Failed to load favorites cache:', error)
       this.cache = null
     }
   }
@@ -74,7 +69,7 @@ class FavoritesCache {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(this.cache))
     } catch (error) {
-      console.error('Failed to save favorites cache:', error)
+      // silent fail
     }
   }
 
@@ -98,17 +93,13 @@ class FavoritesCache {
       this.cache &&
       now - this.cache.timestamp < CACHE_DURATION
     ) {
-      console.log('[FavoritesCache] Returning cached favorites')
       return this.cache.favorites
     }
 
     // Загружаем с сервера
     try {
-      console.log('[FavoritesCache] Fetching favorites from server...')
       const response = await apiClient.get('/api/v1/favorites')
       const favorites = response.data as FavoriteItem[]
-
-      console.log('[FavoritesCache] Received favorites from server:', favorites.length)
 
       const hash = this.generateHash(favorites)
       this.cache = {
@@ -119,15 +110,12 @@ class FavoritesCache {
 
       this.lastSyncHash = hash
       this.saveToStorage()
-      console.log('[FavoritesCache] Notifying listeners about new favorites')
       this.notifyListeners(favorites)
 
       return favorites
     } catch (error) {
-      console.error('[FavoritesCache] Failed to fetch favorites:', error)
       // Возвращаем кеш если есть, даже если он устарел
       if (this.cache) {
-        console.log('[FavoritesCache] Returning stale cache due to error')
         return this.cache.favorites
       }
       throw error
@@ -155,7 +143,7 @@ class FavoritesCache {
         this.notifyListeners(favorites)
       }
     } catch (error) {
-      console.error('Failed to sync favorites:', error)
+      // silent fail
     }
   }
 
@@ -300,7 +288,7 @@ class FavoritesCache {
       try {
         listener(favorites)
       } catch (error) {
-        console.error('Error in favorites listener:', error)
+        // silent fail
       }
     })
   }

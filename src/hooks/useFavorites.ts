@@ -23,6 +23,13 @@ export const useFavorites = (): UseFavoritesReturn => {
   useEffect(() => {
     const initCache = async () => {
       try {
+        // Проверяем авторизацию
+        const token = localStorage.getItem('token')
+        if (!token) {
+          setIsLoading(false)
+          return
+        }
+
         setIsLoading(true)
         setError(null)
         
@@ -30,26 +37,20 @@ export const useFavorites = (): UseFavoritesReturn => {
         let cached = favoritesCache.getCached()
         
         if (cached) {
-          console.log('[useFavorites] Using cached favorites:', cached.length)
           setFavorites(cached)
           setIsLoading(false)
         } else {
-          console.log('[useFavorites] Initializing cache...')
           await favoritesCache.initialize()
           const fav = favoritesCache.getCached()
           if (fav) {
-            console.log('[useFavorites] Loaded favorites from cache:', fav.length)
             setFavorites(fav)
           } else {
-            console.log('[useFavorites] Fetching favorites from server...')
             const fetched = await favoritesCache.getFavorites(true)
-            console.log('[useFavorites] Fetched favorites:', fetched.length)
             setFavorites(fetched)
           }
           setIsLoading(false)
         }
       } catch (err) {
-        console.error('[useFavorites] Error during initialization:', err)
         setError(err instanceof Error ? err : new Error('Failed to load favorites'))
         setIsLoading(false)
       }
@@ -59,7 +60,6 @@ export const useFavorites = (): UseFavoritesReturn => {
 
     // Подписываемся на изменения кеша
     const unsubscribe = favoritesCache.subscribe((fav) => {
-      console.log('[useFavorites] Cache updated:', fav.length)
       setFavorites(fav)
     })
 

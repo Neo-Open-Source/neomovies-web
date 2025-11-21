@@ -11,25 +11,23 @@ export default defineConfig({
     }),
   ],
   build: {
-    // Оптимизация для production
     minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-      },
-    },
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Разделяем код на чанки для лучшей кэширования
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'mui': ['@mui/material', '@mui/icons-material'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('@mui')) {
+              return 'mui'
+            }
+            if (id.includes('react')) {
+              return 'vendor'
+            }
+          }
         },
       },
     },
   },
   server: {
-    // Оптимизация для dev сервера
     middlewareMode: false,
   },
 })

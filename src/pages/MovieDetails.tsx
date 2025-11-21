@@ -47,7 +47,7 @@ export const MovieDetails = () => {
           loadPlayer(res.data, 'alloha')
         }, 500)
       } catch (error) {
-        console.error('Error fetching movie details:', error)
+        // silent fail
       } finally {
         setLoading(false)
       }
@@ -60,7 +60,6 @@ export const MovieDetails = () => {
     try {
       const kpId = movieData.externalIds?.kp || movieData.kinopoisk_id || movieData.filmId
       if (!kpId) {
-        console.error('No kinopoisk ID found')
         return
       }
 
@@ -94,7 +93,7 @@ export const MovieDetails = () => {
         setPlayerHtml(null)
       }
     } catch (error) {
-      console.error('Error loading player:', error)
+      // silent fail
     }
   }
 
@@ -120,7 +119,6 @@ export const MovieDetails = () => {
       }
       setIsFavorite(!isFavorite)
     } catch (error) {
-      console.error('Error updating favorite:', error)
       alert('Ошибка при обновлении избранного')
     }
   }
