@@ -1,0 +1,8 @@
+export { Home } from './Home'
+export { MoviesTop } from './MoviesTop'
+export { TVTop } from './TVTop'
+export { Search } from './Search'
+export { MovieDetails } from './MovieDetails'
+export { Auth } from './Auth'
+export { Profile } from './Profile'
+export { Favorites } from './Favorites'

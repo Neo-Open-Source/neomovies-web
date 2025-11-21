@@ -1,0 +1,282 @@
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import {
+  Typography,
+  Box,
+  CircularProgress,
+  Button,
+  Stack,
+  Rating,
+  Chip,
+  IconButton,
+} from '@mui/material'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import FavoriteIcon from '@mui/icons-material/Favorite'
+import { moviesAPI, getImageUrl, playersAPI, favoritesAPI } from '../api'
+import type { Movie } from '../types'
+
+export const MovieDetails = () => {
+  const { id } = useParams<{ id: string }>()
+  const [movie, setMovie] = useState<Movie | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedPlayer, setSelectedPlayer] = useState<'alloha' | 'lumex' | 'hdvb'>('alloha')
+  const [playerUrl, setPlayerUrl] = useState<string | null>(null)
+  const [playerHtml, setPlayerHtml] = useState<string | null>(null)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    setIsLoggedIn(!!token)
+  }, [])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return
+
+      try {
+        setLoading(true)
+        // Parse kp_ prefix if present
+        const movieId = id.startsWith('kp_') ? id : `kp_${id}`
+        const res = await moviesAPI.getMovieById(movieId)
+        setMovie(res.data)
+        
+        // Auto-load default player after movie is loaded
+        setTimeout(() => {
+          loadPlayer(res.data, 'alloha')
+        }, 500)
+      } catch (error) {
+        console.error('Error fetching movie details:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [id])
+
+  const loadPlayer = async (movieData: any, player: 'alloha' | 'lumex' | 'hdvb') => {
+    try {
+      const kpId = movieData.externalIds?.kp || movieData.kinopoisk_id || movieData.filmId
+      if (!kpId) {
+        console.error('No kinopoisk ID found')
+        return
+      }
+
+      let response = ''
+      if (player === 'alloha') {
+        const res = await playersAPI.getAllohaPlayer('kp', kpId)
+        response = res.data
+      } else if (player === 'lumex') {
+        const res = await playersAPI.getLumexPlayer('kp', kpId)
+        response = res.data
+      } else if (player === 'hdvb') {
+        const res = await playersAPI.getHDVBPlayer('kp', kpId)
+        response = res.data
+      }
+
+      // Check if response is HTML or URL
+      if (response.startsWith('<')) {
+        // It's HTML, extract iframe src
+        const srcMatch = response.match(/src="([^"]+)"/i)
+        if (srcMatch && srcMatch[1]) {
+          setPlayerUrl(srcMatch[1])
+          setPlayerHtml(null)
+        } else {
+          // Fallback: use HTML directly
+          setPlayerHtml(response)
+          setPlayerUrl(null)
+        }
+      } else {
+        // It's a URL
+        setPlayerUrl(response)
+        setPlayerHtml(null)
+      }
+    } catch (error) {
+      console.error('Error loading player:', error)
+    }
+  }
+
+  const handlePlayerChange = (player: 'alloha' | 'lumex' | 'hdvb') => {
+    if (!movie) return
+    setSelectedPlayer(player)
+    loadPlayer(movie, player)
+  }
+
+  const handleFavoriteClick = async () => {
+    if (!isLoggedIn) {
+      alert('Пожалуйста, авторизуйтесь, чтобы добавить фильм в избранное')
+      return
+    }
+
+    if (!movie) return
+
+    try {
+      if (isFavorite) {
+        await favoritesAPI.removeFromFavorites(movie.id, 'movie')
+      } else {
+        await favoritesAPI.addToFavorites(movie.id, 'movie')
+      }
+      setIsFavorite(!isFavorite)
+    } catch (error) {
+      console.error('Error updating favorite:', error)
+      alert('Ошибка при обновлении избранного')
+    }
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (!movie) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 8 }}>
+        <Typography variant="h6">Фильм не найден</Typography>
+      </Box>
+    )
+  }
+
+  const title = movie.title || movie.nameRu || movie.nameOriginal || 'Unknown'
+  const rating = (movie as any).rating || movie.vote_average || movie.ratingKinopoisk || 0
+  const posterPath = movie.poster_path || movie.posterUrlPreview || movie.posterUrl
+  const year = movie.release_date ? new Date(movie.release_date).getFullYear() : movie.year
+
+  return (
+    <Box>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr', md: '1fr 3fr' },
+          gap: { xs: 2, sm: 4 },
+        }}
+      >
+        {/* Poster */}
+        <Box>
+          <Box
+            component="img"
+            src={getImageUrl(posterPath)}
+            alt={title}
+            sx={{
+              width: '100%',
+              aspectRatio: '2/3',
+              objectFit: 'cover',
+            }}
+          />
+        </Box>
+
+        {/* Info */}
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Typography variant="h4" component="h1">
+              {title}
+            </Typography>
+            <IconButton
+              onClick={handleFavoriteClick}
+              sx={{
+                color: isFavorite ? '#ff0000' : '#999',
+                '&:hover': {
+                  color: '#ff0000',
+                },
+              }}
+            >
+              {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+            </IconButton>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Rating value={rating / 2} readOnly />
+            <Typography variant="body1">{rating.toFixed(1)}</Typography>
+            {year && (
+              <Typography variant="body2" color="text.secondary">
+                {year}
+              </Typography>
+            )}
+          </Box>
+
+          {movie.genres && movie.genres.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                {movie.genres.map((genre) => (
+                  <Chip key={genre.id} label={genre.name} variant="outlined" size="small" />
+                ))}
+              </Stack>
+            </Box>
+          )}
+
+          <Typography variant="body1" paragraph>
+            {movie.overview || movie.description || 'Описание недоступно'}
+          </Typography>
+
+          {movie.runtime && (
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Длительность: {movie.runtime} минут
+            </Typography>
+          )}
+
+          {/* Players */}
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Смотреть онлайн
+            </Typography>
+            <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+              <Button
+                variant={selectedPlayer === 'alloha' ? 'contained' : 'outlined'}
+                startIcon={<PlayArrowIcon />}
+                onClick={() => handlePlayerChange('alloha')}
+              >
+                Alloha
+              </Button>
+              <Button
+                variant={selectedPlayer === 'lumex' ? 'contained' : 'outlined'}
+                startIcon={<PlayArrowIcon />}
+                onClick={() => handlePlayerChange('lumex')}
+              >
+                Lumex
+              </Button>
+              <Button
+                variant={selectedPlayer === 'hdvb' ? 'contained' : 'outlined'}
+                startIcon={<PlayArrowIcon />}
+                onClick={() => handlePlayerChange('hdvb')}
+              >
+                HDVB
+              </Button>
+            </Stack>
+
+            {playerUrl && (
+              <Box
+                component="iframe"
+                src={playerUrl}
+                allowFullScreen
+                sx={{
+                  width: '100%',
+                  height: { xs: 300, sm: 400, md: 600 },
+                  border: 'none',
+                }}
+              />
+            )}
+            {playerHtml && (
+              <Box
+                sx={{
+                  width: '100%',
+                  height: { xs: 300, sm: 400, md: 600 },
+                  border: 'none',
+                  '& iframe': {
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                  },
+                }}
+                dangerouslySetInnerHTML={{ __html: playerHtml }}
+              />
+            )}
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  )
+}
