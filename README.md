@@ -60,7 +60,7 @@ npm run dev
 npm run build
 npm start
 ```
-Приложение будет доступно по адресу [http://localhost:3000](http://localhost:3000)
+Приложение будет доступно по адресу [http://localhost:4173](http://localhost:4173)
 
 ## API (neomovies-api)
 

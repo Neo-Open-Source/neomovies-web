@@ -12,6 +12,7 @@ export const TermsGuard = ({ children }: TermsGuardProps) => {
 
   useEffect(() => {
     const accepted = localStorage.getItem('acceptedTerms')
+    const token = localStorage.getItem('token')
     
     // Если уже принял условия - показываем контент
     if (accepted === 'true') {
@@ -25,8 +26,14 @@ export const TermsGuard = ({ children }: TermsGuardProps) => {
       return
     }
 
-    // Если на странице /auth - не редиректим (нужна авторизация перед условиями)
+    // Если на странице /auth - не редиректим
     if (location.pathname === '/auth') {
+      setTermsAccepted(true)
+      return
+    }
+
+    // Если авторизован - показываем контент (условия уже приняты при регистрации)
+    if (token) {
       setTermsAccepted(true)
       return
     }
