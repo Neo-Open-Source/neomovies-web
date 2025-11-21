@@ -1,26 +1,26 @@
 import axios from 'axios'
-
 const API_URL = import.meta.env.VITE_API_URL
 
 // Создание экземпляра Axios с базовыми настройками
 export const apiClient = axios.create({
   baseURL: API_URL,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   },
-  timeout: 12000
 })
 
 // Функция для получения токена из cookies
 const getTokenFromCookie = (): string | null => {
   try {
-    const name = 'token='
+    const tokenName = 'token='
     const decodedCookie = decodeURIComponent(document.cookie)
     const cookieArray = decodedCookie.split(';')
     for (let cookie of cookieArray) {
       cookie = cookie.trim()
-      if (cookie.indexOf(name) === 0) {
-        return cookie.substring(name.length)
+      if (cookie.indexOf(tokenName) === 0) {
+        return cookie.substring(tokenName.length)
       }
     }
   } catch {
@@ -176,15 +176,21 @@ export const getImageUrl = (path: string | null | undefined): string => {
   if (match) {
     const type = match[1]
     const id = match[2]
-    return `${API_URL}/api/v1/images/${type}/${id}`
+    // Try API proxy first, with fallback to direct Kinopoisk
+    return `${API_URL}/api/v1/images/${type}/${id}?fallback=true`
   }
 
   // Already proxied path
   const proxyMatch = path.match(/^(?:https?:\/\/[^/]+)?\/?api\/v1\/images\/(kp|kp_small|kp_big)\/(\d+)$/)
   if (proxyMatch) {
-    return `${API_URL}/api/v1/images/${proxyMatch[1]}/${proxyMatch[2]}`
+    return `${API_URL}/api/v1/images/${proxyMatch[1]}/${proxyMatch[2]}?fallback=true`
   }
 
-  // Fallback: return as is or placeholder
-  return path.startsWith('http') ? path : '/images/placeholder.jpg'
+  // If it's a direct URL, try to use it (with CORS handling)
+  if (path.startsWith('http')) {
+    // Add cache buster to avoid stale images
+    return path.includes('?') ? `${path}&t=${Date.now()}` : `${path}?t=${Date.now()}`
+  }
+
+  return '/images/placeholder.jpg'
 }

@@ -83,11 +83,18 @@ export const MovieDetails = () => {
           setPlayerUrl(srcMatch[1])
           setPlayerHtml(null)
         } else {
-          // Fallback: use HTML directly
-          setPlayerHtml(response)
-          setPlayerUrl(null)
+          // Try to extract from data-src or other attributes
+          const dataSrcMatch = response.match(/data-src="([^"]+)"/i)
+          if (dataSrcMatch && dataSrcMatch[1]) {
+            setPlayerUrl(dataSrcMatch[1])
+            setPlayerHtml(null)
+          } else {
+            // Fallback: use HTML directly
+            setPlayerHtml(response)
+            setPlayerUrl(null)
+          }
         }
-      } else {
+      } else if (response && response.trim()) {
         // It's a URL
         setPlayerUrl(response)
         setPlayerHtml(null)
@@ -245,11 +252,12 @@ export const MovieDetails = () => {
               </Button>
             </Stack>
 
-            {playerUrl && (
+            {playerUrl && !playerUrl.includes('blob:') && (
               <Box
                 component="iframe"
                 src={playerUrl}
                 allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 sx={{
                   width: '100%',
                   height: { xs: 300, sm: 400, md: 600 },
@@ -258,18 +266,16 @@ export const MovieDetails = () => {
               />
             )}
             {playerHtml && (
-              <Box
-                sx={{
+              <iframe
+                srcDoc={playerHtml}
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                style={{
                   width: '100%',
-                  height: { xs: 300, sm: 400, md: 600 },
+                  height: window.innerWidth < 600 ? 300 : window.innerWidth < 960 ? 400 : 600,
                   border: 'none',
-                  '& iframe': {
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                  },
+                  backgroundColor: '#000',
                 }}
-                dangerouslySetInnerHTML={{ __html: playerHtml }}
               />
             )}
           </Box>

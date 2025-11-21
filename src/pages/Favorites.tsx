@@ -85,8 +85,8 @@ export const Favorites = () => {
   }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
+    <Box sx={{ py: 4, px: { xs: 1, sm: 2, md: 3 } }}>
+      <Box sx={{ mb: 4, maxWidth: 'lg', mx: 'auto' }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
           Избранное ({favorites.length})
         </Typography>
@@ -96,21 +96,29 @@ export const Favorites = () => {
             <Typography>{error.message}</Typography>
           </Alert>
         )}
+      </Box>
 
-        {favorites.length === 0 ? (
+      {favorites.length === 0 ? (
+        <Box sx={{ maxWidth: 'lg', mx: 'auto' }}>
           <Alert severity="info">
             <Typography>
               У вас пока нет избранных фильмов. Добавьте фильмы в избранное, нажав на иконку сердца на странице фильма.
             </Typography>
           </Alert>
-        ) : (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
-              gap: 2,
-            }}
-          >
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, 1fr)',
+              md: 'repeat(3, 1fr)',
+              lg: 'repeat(4, 1fr)',
+            },
+            gap: 2,
+          }}
+        >
             {favorites.map((favorite) => {
               // Преобразуем FavoriteItem в Movie для совместимости с MovieCard
               const movie: Movie = {
@@ -148,9 +156,8 @@ export const Favorites = () => {
                 </Box>
               )
             })}
-          </Box>
-        )}
-      </Box>
-    </Container>
+        </Box>
+      )}
+    </Box>
   )
 }

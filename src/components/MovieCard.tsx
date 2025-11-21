@@ -104,6 +104,7 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
           alt={title}
           loading="lazy"
           onLoad={() => setImageLoaded(true)}
+          onError={() => setImageLoaded(true)}
           sx={{
             objectFit: 'cover',
             opacity: imageLoaded ? 1 : 0,
