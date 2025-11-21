@@ -27,7 +27,7 @@ export const TermsGuard = ({ children }: TermsGuardProps) => {
     }
 
     // Если на странице /auth - не редиректим
-    if (location.pathname === '/auth') {
+    if (location.pathname.startsWith('/auth')) {
       setTermsAccepted(true)
       return
     }

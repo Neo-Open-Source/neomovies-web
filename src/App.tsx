@@ -2,6 +2,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Layout } from './components/Layout'
+import { OAuthCallback } from './pages/OAuthCallback'
 import { TermsGuard } from './components/TermsGuard'
 import { Home, Search, MovieDetails, MoviesTop, TVTop, Auth, Profile, Favorites, Terms } from './pages'
 import { FavoritesProvider } from './contexts/FavoritesContext'
@@ -35,6 +36,7 @@ function App() {
           <FavoritesProvider>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<OAuthCallback />} />
               <Route path="/terms" element={<Terms />} />
               <Route
                 path="*"
