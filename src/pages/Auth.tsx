@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
   Container,
@@ -39,11 +39,22 @@ function TabPanel(props: TabPanelProps) {
 
 export const Auth = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [tabValue, setTabValue] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [verificationSent, setVerificationSent] = useState(false)
+
+  // Обработка OAuth callback
+  useEffect(() => {
+    const token = searchParams.get('token')
+    const provider = searchParams.get('provider')
+
+    if (token && provider) {
+      handleOAuthCallback(token, provider)
+    }
+  }, [searchParams])
 
   // Login state
   const [loginData, setLoginData] = useState({
@@ -62,6 +73,37 @@ export const Auth = () => {
   // Verification state
   const [verificationCode, setVerificationCode] = useState('')
   const [verificationEmail, setVerificationEmail] = useState('')
+
+  const handleOAuthCallback = async (token: string, provider: string) => {
+    try {
+      setLoading(true)
+      
+      // Декодируем JWT для получения информации о пользователе
+      const parts = token.split('.')
+      const payload = JSON.parse(atob(parts[1]))
+      
+      // Сохраняем токены
+      localStorage.setItem('token', token)
+      localStorage.setItem('refreshToken', token)
+      localStorage.setItem('userEmail', payload.email || `${provider}_user`)
+      localStorage.setItem('userName', payload.name || payload.email?.split('@')[0] || provider)
+      
+      // Сохраняем в cookies
+      const expiresIn = new Date()
+      expiresIn.setDate(expiresIn.getDate() + 7)
+      document.cookie = `token=${token}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
+      document.cookie = `refreshToken=${token}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
+      
+      // Dispatch auth event
+      window.dispatchEvent(new Event('auth-changed'))
+      
+      navigate('/')
+    } catch (err) {
+      setError('Ошибка при обработке OAuth callback')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
