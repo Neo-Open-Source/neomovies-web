@@ -16,10 +16,10 @@ export const playersAPI = {
     return apiClient.get(`/api/v1/players/hdvb/${idType}/${id}`, { timeout: 30000 })
   },
 
-  // Торренты по KP ID или IMDB ID
-  getTorrents(id: string | number, type: 'movie' | 'tv', idType: 'kp' | 'imdb' = 'kp') {
+  // Торренты по IMDB ID
+  getTorrents(id: string | number, type: 'movie' | 'tv') {
     const typeParam = type === 'tv' ? 'tv' : 'movie'
-    return apiClient.get(`/api/v1/torrents/search/${idType}/${id}?type=${typeParam}`, { timeout: 30000 })
+    return apiClient.get(`/api/v1/torrents/search/${id}?type=${typeParam}`, { timeout: 30000 })
   },
 
   // Торренты по названию
