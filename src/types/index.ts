@@ -4,43 +4,61 @@ export interface Genre {
 }
 
 export interface Movie {
-  id: number
+  id: number | string
   title?: string
   name?: string
   original_title?: string
   original_name?: string
-  overview: string
-  poster_path: string | null
-  backdrop_path: string | null
+  originalTitle?: string
+  overview?: string
+  description?: string
+  poster_path?: string | null
+  backdrop_path?: string | null
+  posterUrl?: string
+  backdropUrl?: string
   release_date?: string
+  releaseDate?: string
   first_air_date?: string
-  vote_average: number
-  vote_count: number
+  endDate?: string
+  vote_average?: number
+  rating?: number
+  vote_count?: number
   genre_ids?: number[]
   runtime?: number
+  duration?: number
   genres?: Genre[]
   popularity?: number
   media_type?: string
+  type?: string
   adult?: boolean
   original_language?: string
   origin_country?: string[]
   imdb_id?: string
+  imdbId?: string
   kinopoisk_id?: number
   nameRu?: string
   nameEn?: string
   nameOriginal?: string
-  posterUrl?: string
   posterUrlPreview?: string
   coverUrl?: string
   ratingKinopoisk?: number
   ratingImdb?: number
-  description?: string
   shortDescription?: string
   filmLength?: number
-  filmId?: number
-  type?: string
+  filmId?: number | string
   year?: string | number
   countries?: Array<{ country: string }>
+  country?: string
+  director?: string
+  cast?: any[]
+  budget?: number | null
+  revenue?: number | null
+  externalIds?: {
+    kp?: number
+    tmdb?: number | null
+    imdb?: string
+  }
+  sourceId?: string
 }
 
 export interface MovieResponse {

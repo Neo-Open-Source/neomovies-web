@@ -14,13 +14,14 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import { moviesAPI, getImageUrl, playersAPI, favoritesAPI } from '../api'
+import { TorrentSelector } from '../components/TorrentSelector'
 import type { Movie } from '../types'
 
 export const MovieDetails = () => {
   const { id } = useParams<{ id: string }>()
   const [movie, setMovie] = useState<Movie | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedPlayer, setSelectedPlayer] = useState<'alloha' | 'lumex' | 'hdvb'>('alloha')
+  const [selectedPlayer, setSelectedPlayer] = useState<'alloha' | 'lumex' | 'collaps'>('alloha')
   const [playerUrl, setPlayerUrl] = useState<string | null>(null)
   const [playerHtml, setPlayerHtml] = useState<string | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -56,9 +57,10 @@ export const MovieDetails = () => {
     fetchData()
   }, [id])
 
-  const loadPlayer = async (movieData: any, player: 'alloha' | 'lumex' | 'hdvb') => {
+  const loadPlayer = async (movieData: any, player: 'alloha' | 'lumex' | 'collaps') => {
     try {
       const kpId = movieData.externalIds?.kp || movieData.kinopoisk_id || movieData.filmId
+      
       if (!kpId) {
         return
       }
@@ -70,8 +72,8 @@ export const MovieDetails = () => {
       } else if (player === 'lumex') {
         const res = await playersAPI.getLumexPlayer('kp', kpId)
         response = res.data
-      } else if (player === 'hdvb') {
-        const res = await playersAPI.getHDVBPlayer('kp', kpId)
+      } else if (player === 'collaps') {
+        const res = await playersAPI.getCollapsPlayer('kp', kpId)
         response = res.data
       }
 
@@ -104,7 +106,7 @@ export const MovieDetails = () => {
     }
   }
 
-  const handlePlayerChange = (player: 'alloha' | 'lumex' | 'hdvb') => {
+  const handlePlayerChange = (player: 'alloha' | 'lumex' | 'collaps') => {
     if (!movie) return
     setSelectedPlayer(player)
     loadPlayer(movie, player)
@@ -119,10 +121,11 @@ export const MovieDetails = () => {
     if (!movie) return
 
     try {
+      const movieId = typeof movie.id === 'string' ? parseInt(movie.id) : movie.id
       if (isFavorite) {
-        await favoritesAPI.removeFromFavorites(movie.id, 'movie')
+        await favoritesAPI.removeFromFavorites(movieId, 'movie')
       } else {
-        await favoritesAPI.addToFavorites(movie.id, 'movie')
+        await favoritesAPI.addToFavorites(movieId, 'movie')
       }
       setIsFavorite(!isFavorite)
     } catch (error) {
@@ -228,7 +231,7 @@ export const MovieDetails = () => {
             <Typography variant="h6" gutterBottom>
               Смотреть онлайн
             </Typography>
-            <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+            <Stack direction="row" sx={{ mb: 3, gap: 2, flexWrap: 'nowrap', alignItems: 'center', overflow: 'auto' }}>
               <Button
                 variant={selectedPlayer === 'alloha' ? 'contained' : 'outlined'}
                 startIcon={<PlayArrowIcon />}
@@ -244,12 +247,18 @@ export const MovieDetails = () => {
                 Lumex
               </Button>
               <Button
-                variant={selectedPlayer === 'hdvb' ? 'contained' : 'outlined'}
+                variant={selectedPlayer === 'collaps' ? 'contained' : 'outlined'}
                 startIcon={<PlayArrowIcon />}
-                onClick={() => handlePlayerChange('hdvb')}
+                onClick={() => handlePlayerChange('collaps')}
               >
-                HDVB
+                Collaps
               </Button>
+              <TorrentSelector
+                imdbId={movie.imdbId || movie.imdb_id || movie.externalIds?.imdb}
+                type={movie.type === 'tv' || movie.media_type === 'tv' ? 'tv' : 'movie'}
+                title={title}
+                originalTitle={movie.originalTitle || movie.original_title}
+              />
             </Stack>
 
             {playerUrl && !playerUrl.includes('blob:') && (

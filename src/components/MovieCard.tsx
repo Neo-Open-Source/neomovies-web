@@ -46,22 +46,21 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
     e.stopPropagation()
 
     if (!isLoggedIn) {
-      alert('Пожалуйста, авторизуйтесь, чтобы добавить фильм в избранное')
       return
     }
 
     try {
       setIsUpdating(true)
-      if (isFavorite) {
-        await favoritesAPI.removeFromFavorites(movie.id, 'movie')
-      } else {
-        await favoritesAPI.addToFavorites(movie.id, 'movie', {
-          title,
-          nameRu: title,
-          nameEn: movie.original_title || '',
-          posterPath,
-          year: movie.release_date ? new Date(movie.release_date).getFullYear() : 0,
-          rating,
+    const movieIdNum = typeof movie.id === 'string' ? Number(movie.id) : movie.id
+    if (isFavorite) {
+      await favoritesAPI.removeFromFavorites(movieIdNum, 'movie')
+    } else {
+      await favoritesAPI.addToFavorites(movieIdNum, 'movie', {
+        title,
+        nameRu: title,
+        nameEn: movie.original_title || '',
+        posterPath,
+        year: movie.release_date ? new Date(movie.release_date).getFullYear() : 0,
         })
       }
       // Состояние обновится через подписку на кеш

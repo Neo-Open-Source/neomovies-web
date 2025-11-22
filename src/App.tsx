@@ -1,11 +1,12 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { OAuthCallback } from './pages/OAuthCallback'
 import { TermsGuard } from './components/TermsGuard'
 import { Home, Search, MovieDetails, MoviesTop, TVTop, Auth, Profile, Favorites, Terms } from './pages'
 import { FavoritesProvider } from './contexts/FavoritesContext'
+import { useEffect } from 'react'
 import './App.css'
 
 const theme = createTheme({
@@ -27,6 +28,35 @@ const theme = createTheme({
   },
 })
 
+// Компонент для обработки событий авторизации
+function AuthHandler() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      // Очищаем токены
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('userName')
+      localStorage.removeItem('userEmail')
+      
+      // Очищаем cookies
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
+      document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
+      
+      // Перенаправляем на страницу авторизации
+      navigate('/auth')
+    }
+
+    window.addEventListener('auth-expired', handleAuthExpired)
+    return () => {
+      window.removeEventListener('auth-expired', handleAuthExpired)
+    }
+  }, [navigate])
+
+  return null
+}
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -34,6 +64,7 @@ function App() {
       <BrowserRouter>
         <TermsGuard>
           <FavoritesProvider>
+            <AuthHandler />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/callback" element={<OAuthCallback />} />

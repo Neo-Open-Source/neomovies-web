@@ -7,7 +7,6 @@ export const apiClient = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   },
 })
 
@@ -60,9 +59,6 @@ apiClient.interceptors.request.use(
       }
     }
     
-    if (import.meta.env.DEV) {
-      console.log('🔵 Making request to:', (config.baseURL || '') + (config.url || ''), 'Params:', config.params)
-    }
     return config
   },
   (error) => {
@@ -93,11 +89,11 @@ const refreshToken = async (): Promise<string | null> => {
       localStorage.setItem('token', newAccessToken)
       localStorage.setItem('refreshToken', newRefreshToken)
       
-      // Сохраняем в cookies
+      // Сохраняем в cookies на 30 дней
       const expiresIn = new Date()
-      expiresIn.setDate(expiresIn.getDate() + 7)
-      document.cookie = `token=${newAccessToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
-      document.cookie = `refreshToken=${newRefreshToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
+      expiresIn.setDate(expiresIn.getDate() + 30)
+      document.cookie = `token=${newAccessToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax; Secure`
+      document.cookie = `refreshToken=${newRefreshToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax; Secure`
       
       return newAccessToken
     }
@@ -147,21 +143,13 @@ apiClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`
         return apiClient(originalRequest)
       } else {
-        // Если не удалось обновить токен, перенаправляем на авторизацию
-        window.location.href = '/auth'
+        // Если не удалось обновить токен, отправляем событие для обновления UI
+        // Вместо редиректа на /auth, позволяем приложению обработать это событие
+        window.dispatchEvent(new Event('auth-expired'))
+        return Promise.reject(error)
       }
     }
 
-    if (import.meta.env.DEV) {
-      console.error('❌ Response Error:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url,
-        method: error.config?.method,
-        message: error.message,
-        data: error.response?.data
-      })
-    }
     return Promise.reject(error)
   }
 )

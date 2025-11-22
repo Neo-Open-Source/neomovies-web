@@ -33,11 +33,11 @@ export const OAuthCallback = () => {
         if (user?.email) localStorage.setItem('userEmail', user.email)
         if (user?.name) localStorage.setItem('userName', user.name)
 
-        // also cookie for cross-tab
+        // also cookie for cross-tab (30 days)
         const expires = new Date()
-        expires.setDate(expires.getDate() + 7)
-        document.cookie = `token=${token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`
-        document.cookie = `refreshToken=${token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`
+        expires.setDate(expires.getDate() + 30)
+        document.cookie = `token=${token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax; Secure`
+        document.cookie = `refreshToken=${token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax; Secure`
 
         // mark terms accepted automatically for registered users
         localStorage.setItem('acceptedTerms', 'true')
