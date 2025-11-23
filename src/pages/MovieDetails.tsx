@@ -231,34 +231,41 @@ export const MovieDetails = () => {
             <Typography variant="h6" gutterBottom>
               Смотреть онлайн
             </Typography>
-            <Stack direction="row" sx={{ mb: 3, gap: 2, flexWrap: 'nowrap', alignItems: 'center', overflow: 'auto' }}>
-              <Button
-                variant={selectedPlayer === 'alloha' ? 'contained' : 'outlined'}
-                startIcon={<PlayArrowIcon />}
-                onClick={() => handlePlayerChange('alloha')}
-              >
-                Alloha
-              </Button>
-              <Button
-                variant={selectedPlayer === 'lumex' ? 'contained' : 'outlined'}
-                startIcon={<PlayArrowIcon />}
-                onClick={() => handlePlayerChange('lumex')}
-              >
-                Lumex
-              </Button>
-              <Button
-                variant={selectedPlayer === 'collaps' ? 'contained' : 'outlined'}
-                startIcon={<PlayArrowIcon />}
-                onClick={() => handlePlayerChange('collaps')}
-              >
-                Collaps
-              </Button>
-              <TorrentSelector
-                imdbId={movie.imdbId || movie.imdb_id || movie.externalIds?.imdb}
-                type={movie.type === 'tv' || movie.media_type === 'tv' ? 'tv' : 'movie'}
-                title={title}
-                originalTitle={movie.originalTitle || movie.original_title}
-              />
+            <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 3, gap: 2, alignItems: { xs: 'stretch', sm: 'center' } }}>
+              <Stack direction="row" sx={{ gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Button
+                  variant={selectedPlayer === 'alloha' ? 'contained' : 'outlined'}
+                  startIcon={<PlayArrowIcon />}
+                  onClick={() => handlePlayerChange('alloha')}
+                  size="small"
+                >
+                  Alloha
+                </Button>
+                <Button
+                  variant={selectedPlayer === 'lumex' ? 'contained' : 'outlined'}
+                  startIcon={<PlayArrowIcon />}
+                  onClick={() => handlePlayerChange('lumex')}
+                  size="small"
+                >
+                  Lumex
+                </Button>
+                <Button
+                  variant={selectedPlayer === 'collaps' ? 'contained' : 'outlined'}
+                  startIcon={<PlayArrowIcon />}
+                  onClick={() => handlePlayerChange('collaps')}
+                  size="small"
+                >
+                  Collaps
+                </Button>
+              </Stack>
+              <Box sx={{ display: { xs: 'block', sm: 'inline' } }}>
+                <TorrentSelector
+                  imdbId={movie.imdbId || movie.imdb_id || movie.externalIds?.imdb}
+                  type={movie.type === 'tv' || movie.media_type === 'tv' ? 'tv' : 'movie'}
+                  title={title}
+                  originalTitle={movie.originalTitle || movie.original_title}
+                />
+              </Box>
             </Stack>
 
             {playerUrl && !playerUrl.includes('blob:') && (
