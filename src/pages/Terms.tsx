@@ -122,66 +122,67 @@ export const Terms = () => {
   const t = content[lang]
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', py: 4 }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', py: { xs: 2, sm: 4 } }}>
       <Container maxWidth="lg">
-        <Paper elevation={3} sx={{ p: 4, backgroundColor: '#1e1e1e', color: '#fff' }}>
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, backgroundColor: '#1e1e1e', color: '#fff' }}>
           {/* Language Selector */}
-          <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-            <LanguageIcon sx={{ color: 'primary.main' }} />
-            <Typography variant="h6">{t.selectLanguage}</Typography>
+          <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <LanguageIcon sx={{ color: 'primary.main', fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+            <Typography variant="h6" sx={{ fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>{t.selectLanguage}</Typography>
           </Box>
 
-          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
             <ToggleButtonGroup
               value={lang}
               exclusive
               onChange={handleLanguageChange}
               aria-label="language"
+              size="small"
             >
-              <ToggleButton value="ru" aria-label="russian">
+              <ToggleButton value="ru" aria-label="russian" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Русский
               </ToggleButton>
-              <ToggleButton value="en" aria-label="english">
+              <ToggleButton value="en" aria-label="english" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 English
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
-          <Divider sx={{ mb: 4 }} />
+          <Divider sx={{ mb: 3 }} />
 
           {/* Header */}
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               {t.title}
             </Typography>
-            <Typography variant="subtitle1" color="textSecondary">
+            <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               {t.subtitle}
             </Typography>
           </Box>
 
           {/* Content */}
-          <Box sx={{ mb: 4, lineHeight: 1.8 }}>
+          <Box sx={{ mb: 3, lineHeight: 1.6 }}>
             {t.sections.map((section, index) => (
-              <Box key={index} sx={{ mb: 3 }}>
-                <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 1, color: '#fff' }}>
+              <Box key={index} sx={{ mb: 2 }}>
+                <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 1, color: '#fff', fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
                   {section.title}
                 </Typography>
                 {section.text.split('\n\n').map((paragraph, pIndex) => (
-                  <Typography key={pIndex} variant="body2" sx={{ mb: 1, color: '#ccc' }}>
+                  <Typography key={pIndex} variant="body2" sx={{ mb: 0.75, color: '#ccc', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                     {paragraph}
                   </Typography>
                 ))}
                 {section.list && (
                   <>
-                    <Box component="ul" sx={{ pl: 2, mb: 1 }}>
+                    <Box component="ul" sx={{ pl: 2, mb: 0.75 }}>
                       {section.list.map((item, liIndex) => (
-                        <Typography key={liIndex} component="li" variant="body2" sx={{ mb: 0.5, color: '#ccc' }}>
+                        <Typography key={liIndex} component="li" variant="body2" sx={{ mb: 0.3, color: '#ccc', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                           {item}
                         </Typography>
                       ))}
                     </Box>
                     {section.afterList && (
-                      <Typography variant="body2" sx={{ mb: 1, color: '#ccc' }}>
+                      <Typography variant="body2" sx={{ mb: 0.75, color: '#ccc', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                         {section.afterList}
                       </Typography>
                     )}
@@ -191,21 +192,30 @@ export const Terms = () => {
             ))}
           </Box>
 
-          <Divider sx={{ my: 4, borderColor: '#333' }} />
+          <Divider sx={{ my: 3, borderColor: '#333' }} />
 
           {/* Actions */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Button variant="outlined" onClick={handleDecline} sx={{ color: '#ccc', borderColor: '#555' }}>
+          <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <Button 
+              variant="outlined" 
+              onClick={handleDecline} 
+              sx={{ color: '#ccc', borderColor: '#555', fontSize: { xs: '0.8rem', sm: '0.875rem' }, width: { xs: '100%', sm: 'auto' } }}
+            >
               {t.decline}
             </Button>
-            <Button variant="contained" color="primary" onClick={handleAccept}>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={handleAccept}
+              sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, width: { xs: '100%', sm: 'auto' } }}
+            >
               {t.accept}
             </Button>
           </Box>
 
           {/* Footer */}
-          <Box sx={{ mt: 4, textAlign: 'center', borderTop: '1px solid #333', pt: 2 }}>
-            <Typography variant="caption" sx={{ color: '#999' }}>
+          <Box sx={{ mt: 3, textAlign: 'center', borderTop: '1px solid #333', pt: 2 }}>
+            <Typography variant="caption" sx={{ color: '#999', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
               {t.footer}
             </Typography>
           </Box>
