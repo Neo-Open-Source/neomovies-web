@@ -165,6 +165,7 @@ export const TorrentSelector = ({ imdbId, type, title, originalTitle }: TorrentS
         variant="outlined"
         onClick={handleOpen}
         startIcon={<BsMagnetFill style={{ fontSize: '0.875rem' }} />}
+        size="small"
       >
         Торренты
       </Button>
