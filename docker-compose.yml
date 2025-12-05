@@ -1,7 +1,7 @@
 services:
   frontend:
     build:
-      context: https://gitlab.com/Ernela/neomovies-web.git
+      context: https://gitlab.com/foxixus/neomovies-web.git
       dockerfile: Dockerfile
     container_name: neomovies-frontend
     ports:
@@ -10,7 +10,7 @@ services:
 
   backend:
     build:
-      context: https://gitlab.com/Ernela/neomovies-api.git
+      context: https://gitlab.com/foxixus/neomovies-api.git
       dockerfile: Dockerfile
     container_name: neomovies-backend
     ports:
