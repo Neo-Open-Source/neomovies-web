@@ -71,7 +71,7 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
       setIsUpdating(false)
     }
   }
-@@
+
   return (
     <Card
       onClick={() => onClick?.(movie)}
