@@ -12,18 +12,82 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#1976d2',
+      main: '#5b7cfa',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#ff4d7d',
     },
     background: {
-      default: '#121212',
-      paper: '#1e1e1e',
+      default: '#0b0f19',
+      paper: 'rgba(255,255,255,0.06)',
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+    h4: { fontWeight: 800, letterSpacing: -0.6 },
+    h5: { fontWeight: 800, letterSpacing: -0.4 },
+    h6: { fontWeight: 750, letterSpacing: -0.2 },
+  },
+  shape: {
+    borderRadius: 16,
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundImage:
+            'radial-gradient(1200px 800px at 20% 10%, rgba(88,101,242,0.18), transparent 60%), radial-gradient(900px 700px at 80% 20%, rgba(25,118,210,0.16), transparent 55%), radial-gradient(900px 700px at 50% 90%, rgba(255,77,125,0.12), transparent 55%)',
+          backgroundAttachment: 'fixed',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+          border: '1px solid rgba(255,255,255,0.10)',
+          backdropFilter: 'blur(12px)',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          border: '1px solid rgba(255,255,255,0.10)',
+          backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))',
+          backdropFilter: 'blur(12px)',
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+          borderBottom: '1px solid rgba(255,255,255,0.10)',
+          backdropFilter: 'blur(14px)',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          borderRadius: 14,
+          fontWeight: 700,
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 14,
+          backgroundColor: 'rgba(255,255,255,0.06)',
+        },
+        notchedOutline: {
+          borderColor: 'rgba(255,255,255,0.14)',
+        },
+      },
+    },
   },
 })
 

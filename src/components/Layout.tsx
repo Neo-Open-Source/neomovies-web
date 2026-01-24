@@ -88,7 +88,15 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Top Header */}
-      <AppBar position="sticky" sx={{ backgroundColor: '#0f0f0f', borderBottom: '1px solid #222' }}>
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          backgroundColor: 'rgba(11, 15, 25, 0.55)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          backdropFilter: 'blur(14px)'
+        }}
+      >
         <Toolbar sx={{ justifyContent: 'space-between', py: 0.5, px: { xs: 1, sm: 2 }, gap: 1, minHeight: 'auto' }}>
           {/* Logo */}
           <Box
@@ -128,18 +136,18 @@ export const Layout = ({ children }: LayoutProps) => {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   color: '#fff',
-                  backgroundColor: '#1a1a1a',
-                  borderRadius: '4px',
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderRadius: '14px',
                   fontSize: { xs: '0.8rem', sm: '0.95rem' },
                   height: 38,
                   '& fieldset': {
-                    borderColor: '#333',
+                    borderColor: 'rgba(255,255,255,0.14)',
                   },
                   '&:hover fieldset': {
-                    borderColor: '#555',
+                    borderColor: 'rgba(255,255,255,0.22)',
                   },
                   '&.Mui-focused fieldset': {
-                    borderColor: '#1976d2',
+                    borderColor: 'rgba(91,124,250,0.7)',
                   },
                 },
               }}
@@ -160,14 +168,14 @@ export const Layout = ({ children }: LayoutProps) => {
                   top: '100%',
                   left: 0,
                   right: 0,
-                  backgroundColor: '#1a1a1a',
-                  borderColor: '#333',
-                  border: '1px solid #333',
+                  backgroundColor: 'rgba(15, 20, 35, 0.75)',
+                  border: '1px solid rgba(255,255,255,0.10)',
                   borderTop: 'none',
-                  borderRadius: '0 0 4px 4px',
+                  borderRadius: '0 0 14px 14px',
                   maxHeight: 300,
                   overflowY: 'auto',
                   zIndex: 1000,
+                  backdropFilter: 'blur(12px)'
                 }}
               >
                 {searchLoading ? (
@@ -325,7 +333,7 @@ export const Layout = ({ children }: LayoutProps) => {
       </AppBar>
 
       {/* Navigation Bar */}
-      <Box sx={{ backgroundColor: '#0f0f0f', borderBottom: '1px solid #222', py: 0.75, overflowX: 'auto' }}>
+      <Box sx={{ backgroundColor: 'rgba(11, 15, 25, 0.45)', borderBottom: '1px solid rgba(255,255,255,0.08)', py: 0.75, overflowX: 'auto', backdropFilter: 'blur(14px)' }}>
         <Container maxWidth="lg">
           <Stack direction="row" spacing={{ xs: 1, sm: 3 }} sx={{ overflowX: 'auto', pb: 0.5 }}>
             <Button
@@ -396,7 +404,7 @@ export const Layout = ({ children }: LayoutProps) => {
       </Box>
 
       {/* Main Content */}
-      <Box component="main" sx={{ flexGrow: 1, py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 0 }, backgroundColor: '#121212' }}>
+      <Box component="main" sx={{ flexGrow: 1, py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 0 } }}>
         <Container maxWidth="lg">{children}</Container>
       </Box>
     </Box>
