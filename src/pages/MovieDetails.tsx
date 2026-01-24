@@ -21,7 +21,7 @@ export const MovieDetails = () => {
   const { id } = useParams<{ id: string }>()
   const [movie, setMovie] = useState<Movie | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedPlayer, setSelectedPlayer] = useState<'alloha' | 'lumex' | 'collaps'>('alloha')
+  const [selectedPlayer, setSelectedPlayer] = useState<'lumex' | 'collaps'>('lumex')
   const [playerUrl, setPlayerUrl] = useState<string | null>(null)
   const [playerHtml, setPlayerHtml] = useState<string | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -45,7 +45,7 @@ export const MovieDetails = () => {
         
         // Auto-load default player after movie is loaded
         setTimeout(() => {
-          loadPlayer(res.data, 'alloha')
+          loadPlayer(res.data, 'lumex')
         }, 500)
       } catch (error) {
         // silent fail
@@ -57,7 +57,7 @@ export const MovieDetails = () => {
     fetchData()
   }, [id])
 
-  const loadPlayer = async (movieData: any, player: 'alloha' | 'lumex' | 'collaps') => {
+  const loadPlayer = async (movieData: any, player: 'lumex' | 'collaps') => {
     try {
       const kpId = movieData.externalIds?.kp || movieData.kinopoisk_id || movieData.filmId
       
@@ -66,10 +66,7 @@ export const MovieDetails = () => {
       }
 
       let response = ''
-      if (player === 'alloha') {
-        const res = await playersAPI.getAllohaPlayer('kp', kpId)
-        response = res.data
-      } else if (player === 'lumex') {
+      if (player === 'lumex') {
         const res = await playersAPI.getLumexPlayer('kp', kpId)
         response = res.data
       } else if (player === 'collaps') {
@@ -106,7 +103,7 @@ export const MovieDetails = () => {
     }
   }
 
-  const handlePlayerChange = (player: 'alloha' | 'lumex' | 'collaps') => {
+  const handlePlayerChange = (player: 'lumex' | 'collaps') => {
     if (!movie) return
     setSelectedPlayer(player)
     loadPlayer(movie, player)
@@ -233,14 +230,6 @@ export const MovieDetails = () => {
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 3, gap: 2, alignItems: { xs: 'stretch', sm: 'center' } }}>
               <Stack direction="row" sx={{ gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Button
-                  variant={selectedPlayer === 'alloha' ? 'contained' : 'outlined'}
-                  startIcon={<PlayArrowIcon />}
-                  onClick={() => handlePlayerChange('alloha')}
-                  size="small"
-                >
-                  Alloha
-                </Button>
                 <Button
                   variant={selectedPlayer === 'lumex' ? 'contained' : 'outlined'}
                   startIcon={<PlayArrowIcon />}
