@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { OAuthCallback } from './pages/OAuthCallback'
 import { TermsGuard } from './components/TermsGuard'
-import { Home, Search, MovieDetails, MoviesTop, TVTop, Auth, Profile, Favorites, Terms } from './pages'
+import { Home, Search, MovieDetails, MoviesTop, TVTop, NeoIDAuth, Profile, Favorites, Terms } from './pages'
 import { FavoritesProvider } from './contexts/FavoritesContext'
 import { useEffect } from 'react'
 import './App.css'
@@ -66,7 +66,7 @@ function App() {
           <FavoritesProvider>
             <AuthHandler />
             <Routes>
-              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth" element={<NeoIDAuth />} />
               <Route path="/auth/callback" element={<OAuthCallback />} />
               <Route path="/terms" element={<Terms />} />
               <Route
