@@ -97,7 +97,7 @@ export const Favorites = () => {
           </Alert>
         )}
       </Box>
-
+@@
       {favorites.length === 0 ? (
         <Box>
           <Alert severity="info">
@@ -117,6 +117,8 @@ export const Favorites = () => {
               lg: 'repeat(4, 1fr)',
             },
             gap: { xs: 2, sm: 2.5 },
+            alignItems: 'stretch',
+            justifyItems: 'stretch',
           }}
         >
             {favorites.map((favorite) => {
@@ -137,7 +139,7 @@ export const Favorites = () => {
               } as Movie
 
               return (
-                <Box key={favorite.id} sx={{ position: 'relative' }}>
+                <Box key={favorite.id} sx={{ position: 'relative', width: '100%' }}>
                   <MovieCard movie={movie} onClick={handleMovieClick} hideFavoriteButton={true} />
                   <Button
                     size="small"

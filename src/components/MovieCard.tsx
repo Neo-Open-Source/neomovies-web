@@ -71,12 +71,13 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
       setIsUpdating(false)
     }
   }
-
+@@
   return (
     <Card
       onClick={() => onClick?.(movie)}
       sx={{
         cursor: 'pointer',
+        width: '100%',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -87,7 +88,7 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
         },
       }}
     >
-      <Box sx={{ position: 'relative', height: 300, overflow: 'hidden', backgroundColor: '#1a1a1a' }}>
+      <Box sx={{ position: 'relative', height: 300, width: '100%', overflow: 'hidden', backgroundColor: '#1a1a1a' }}>
         {!imageLoaded && (
           <Skeleton
             variant="rectangular"
@@ -105,6 +106,8 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageLoaded(true)}
           sx={{
+            display: 'block',
+            width: '100%',
             objectFit: 'cover',
             opacity: imageLoaded ? 1 : 0,
             transition: 'opacity 0.3s ease-in-out',
