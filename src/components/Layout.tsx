@@ -395,7 +395,16 @@ export const Layout = ({ children }: LayoutProps) => {
       </Box>
 
       {/* Main Content */}
-      <Box component="main" sx={{ flexGrow: 1, py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 0 } }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          py: { xs: 2, sm: 4 },
+          px: { xs: 1, sm: 0 },
+          backgroundColor: '#0f0f10',
+          minHeight: '100%'
+        }}
+      >
         <Container maxWidth="lg">{children}</Container>
       </Box>
     </Box>
