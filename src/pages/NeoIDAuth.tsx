@@ -18,10 +18,14 @@ export const NeoIDAuth = () => {
   const [error, setError] = useState('')
   const [redirectUrl, setRedirectUrl] = useState<string>('')
 
+  const neoIdBaseUrl = import.meta.env.VITE_NEO_ID_URL || 'https://id.neomovies.ru'
+  const neoIdApiKey = import.meta.env.VITE_NEO_ID_API_KEY || ''
+
   // Обработка callback от Neo ID
   useEffect(() => {
     const token = searchParams.get('token')
     const errorParam = searchParams.get('error')
+    const stateParam = searchParams.get('state')
 
     if (errorParam) {
       setError(`Ошибка авторизации: ${errorParam}`)
@@ -29,25 +33,69 @@ export const NeoIDAuth = () => {
     }
 
     if (token) {
-      handleNeoIDCallback(token)
+      handleNeoIDCallback(token, stateParam)
       return
     }
 
     // Если токена нет — сразу редиректим на страницу логина Neo ID,
     // где пользователь выберет провайдера (Google/GitHub/и т.д.)
-    const neoIdBaseUrl = import.meta.env.VITE_NEO_ID_URL || 'https://neo-id.vercel.app'
-    const callbackUrl = `${window.location.origin}/auth/callback`
-    const state = Math.random().toString(36).slice(2)
-    const loginUrl = `${neoIdBaseUrl}/login?redirect_url=${encodeURIComponent(callbackUrl)}&state=${encodeURIComponent(state)}`
+    void (async () => {
+      try {
+        if (!neoIdApiKey) {
+          setError('Не настроен ключ интеграции Neo ID (VITE_NEO_ID_API_KEY)')
+          return
+        }
 
-    setRedirectUrl(loginUrl)
-    setLoading(true)
-    window.location.replace(loginUrl)
+        const callbackUrl = `${window.location.origin}/auth/callback`
+        const state = Math.random().toString(36).slice(2)
+        localStorage.setItem('neo_id_state', state)
+
+        setLoading(true)
+
+        const resp = await fetch(`${neoIdBaseUrl}/api/site/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': neoIdApiKey,
+          },
+          body: JSON.stringify({
+            redirect_url: callbackUrl,
+            state,
+          }),
+        })
+
+        if (!resp.ok) {
+          const text = await resp.text()
+          throw new Error(text || `HTTP ${resp.status}`)
+        }
+
+        const data = await resp.json()
+        const rawLoginUrl = data.login_url
+        if (!rawLoginUrl) {
+          throw new Error('Neo ID не вернул login_url')
+        }
+
+        const base = neoIdBaseUrl.replace(/\/$/, '')
+        const loginUrl = rawLoginUrl.startsWith('/') ? `${base}${rawLoginUrl}` : rawLoginUrl
+
+        setRedirectUrl(loginUrl)
+        window.location.replace(loginUrl)
+      } catch (e: any) {
+        setLoading(false)
+        setError(e?.message || 'Ошибка при запросе ссылки входа Neo ID')
+      }
+    })()
   }, [searchParams])
 
-  const handleNeoIDCallback = async (token: string) => {
+  const handleNeoIDCallback = async (token: string, stateParam: string | null) => {
     try {
       setLoading(true)
+
+      const savedState = localStorage.getItem('neo_id_state')
+      if (savedState && stateParam && savedState !== stateParam) {
+        setError('Ошибка авторизации: некорректный state')
+        return
+      }
       
       // Декодируем JWT для получения информации о пользователе
       const parts = token.split('.')
@@ -130,11 +178,7 @@ export const NeoIDAuth = () => {
                   py: 1.2,
                 }}
                 onClick={() => {
-                  const neoIdBaseUrl = import.meta.env.VITE_NEO_ID_URL || 'https://neo-id.vercel.app'
-                  const callbackUrl = `${window.location.origin}/auth/callback`
-                  const state = Math.random().toString(36).slice(2)
-                  const loginUrl = `${neoIdBaseUrl}/login?redirect_url=${encodeURIComponent(callbackUrl)}&state=${encodeURIComponent(state)}`
-                  window.location.assign(loginUrl)
+                  window.location.assign('/auth')
                 }}
               >
                 Открыть Neo ID
