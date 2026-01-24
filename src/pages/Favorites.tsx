@@ -85,8 +85,8 @@ export const Favorites = () => {
   }
 
   return (
-    <Box sx={{ py: 4, px: { xs: 1, sm: 2, md: 3 } }}>
-      <Box sx={{ mb: 4, maxWidth: 'lg', mx: 'auto' }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
           Избранное ({favorites.length})
         </Typography>
@@ -99,7 +99,7 @@ export const Favorites = () => {
       </Box>
 
       {favorites.length === 0 ? (
-        <Box sx={{ maxWidth: 'lg', mx: 'auto' }}>
+        <Box>
           <Alert severity="info">
             <Typography>
               У вас пока нет избранных фильмов. Добавьте фильмы в избранное, нажав на иконку сердца на странице фильма.
@@ -116,7 +116,7 @@ export const Favorites = () => {
               md: 'repeat(3, 1fr)',
               lg: 'repeat(4, 1fr)',
             },
-            gap: 2,
+            gap: { xs: 2, sm: 2.5 },
           }}
         >
             {favorites.map((favorite) => {
@@ -149,6 +149,9 @@ export const Favorites = () => {
                       top: 8,
                       right: 8,
                       zIndex: 10,
+                      minWidth: 'auto',
+                      px: 1,
+                      py: 0.5,
                     }}
                   >
                     Удалить
@@ -158,6 +161,6 @@ export const Favorites = () => {
             })}
         </Box>
       )}
-    </Box>
+    </Container>
   )
 }

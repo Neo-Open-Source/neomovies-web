@@ -38,6 +38,25 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     initCache()
   }, [])
 
+  // Re-init cache on auth changes (login/logout)
+  useEffect(() => {
+    const onAuthChanged = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (token) {
+          await favoritesCache.initialize()
+        } else {
+          favoritesCache.clear()
+        }
+      } catch (error) {
+        console.error('[FavoritesProvider] Failed to handle auth change:', error)
+      }
+    }
+
+    window.addEventListener('auth-changed', onAuthChanged)
+    return () => window.removeEventListener('auth-changed', onAuthChanged)
+  }, [])
+
   return (
     <FavoritesContext.Provider value={favorites}>
       {children}

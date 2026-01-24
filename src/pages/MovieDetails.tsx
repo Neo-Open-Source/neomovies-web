@@ -32,6 +32,24 @@ export const MovieDetails = () => {
     setIsLoggedIn(!!token)
   }, [])
 
+  // Sync favorite status with cache
+  useEffect(() => {
+    if (!movie) return
+
+    const checkFavorite = () => {
+      const favorite = favoritesAPI.checkIsFavorite(movie.id, 'movie')
+      setIsFavorite(favorite)
+    }
+
+    checkFavorite()
+
+    const unsubscribe = favoritesAPI.subscribe(() => {
+      checkFavorite()
+    })
+
+    return () => unsubscribe()
+  }, [movie])
+
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return
@@ -122,9 +140,18 @@ export const MovieDetails = () => {
       if (isFavorite) {
         await favoritesAPI.removeFromFavorites(movieId, 'movie')
       } else {
-        await favoritesAPI.addToFavorites(movieId, 'movie')
+        const title = movie.title || movie.nameRu || movie.nameOriginal || movie.name || 'Unknown'
+        const posterPath = movie.poster_path || movie.posterUrlPreview || movie.posterUrl
+        const year = movie.release_date ? new Date(movie.release_date).getFullYear() : movie.year || 0
+        await favoritesAPI.addToFavorites(movieId, 'movie', {
+          title,
+          nameRu: title,
+          nameEn: (movie as any).original_title || (movie as any).originalTitle || '',
+          posterPath,
+          year: typeof year === 'number' ? year : 0,
+        })
       }
-      setIsFavorite(!isFavorite)
+      // state will update via cache subscription
     } catch (error) {
       alert('Ошибка при обновлении избранного')
     }
