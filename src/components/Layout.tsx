@@ -88,7 +88,7 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Top Header */}
-      <AppBar position="sticky" elevation={0} sx={{ backgroundColor: '#0f0f0f', borderBottom: '1px solid #222' }}>
+      <AppBar position="sticky" elevation={0} sx={{ backgroundColor: '#0f0f10', borderBottom: '1px solid #222' }}>
         <Toolbar sx={{ justifyContent: 'space-between', py: 0.5, px: { xs: 1, sm: 2 }, gap: 1, minHeight: 'auto' }}>
           {/* Logo */}
           <Box
@@ -324,7 +324,7 @@ export const Layout = ({ children }: LayoutProps) => {
       </AppBar>
 
       {/* Navigation Bar */}
-      <Box sx={{ backgroundColor: '#0f0f0f', borderBottom: '1px solid #222', py: 0.75, overflowX: 'auto' }}>
+      <Box sx={{ backgroundColor: '#0f0f10', borderBottom: '1px solid #222', py: 0.75, overflowX: 'auto' }}>
         <Container maxWidth="lg">
           <Stack direction="row" spacing={{ xs: 1, sm: 3 }} sx={{ overflowX: 'auto', pb: 0.5 }}>
             <Button
