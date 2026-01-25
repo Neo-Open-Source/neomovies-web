@@ -78,11 +78,13 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
       sx={{
         cursor: 'pointer',
         width: '100%',
+        maxWidth: '100%',
         minWidth: 0,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        overflow: 'hidden',
         '&:hover': {
           transform: 'translateY(-8px)',
           boxShadow: 6,

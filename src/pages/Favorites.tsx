@@ -139,7 +139,7 @@ export const Favorites = () => {
               } as Movie
 
               return (
-                <Box key={favorite.id} sx={{ position: 'relative', width: '100%' }}>
+                <Box key={favorite.id} sx={{ position: 'relative', width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
                   <MovieCard movie={movie} onClick={handleMovieClick} hideFavoriteButton={true} />
                   <Button
                     size="small"
