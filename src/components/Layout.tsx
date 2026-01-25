@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   AppBar,
   Toolbar,
@@ -16,7 +16,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search'
 import PersonIcon from '@mui/icons-material/Person'
 import { useNavigate } from 'react-router-dom'
-import { moviesAPI } from '../api'
+import { getImageUrl, moviesAPI } from '../api'
 import { filterValidMovies } from '../utils/filterMovies'
 import type { Movie } from '../types'
 
@@ -32,6 +32,8 @@ export const Layout = ({ children }: LayoutProps) => {
   const [searchResults, setSearchResults] = useState<Movie[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
+  const searchRequestIdRef = useRef(0)
+  const searchCommittedRef = useRef(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -47,21 +49,31 @@ export const Layout = ({ children }: LayoutProps) => {
   }, [])
 
   const handleSearchInput = async (value: string) => {
+    searchCommittedRef.current = false
     setSearchQuery(value)
-    
+
     if (value.length >= 3) {
       setSearchLoading(true)
+      const requestId = ++searchRequestIdRef.current
       try {
         const res = await moviesAPI.searchMovies(value, 1)
+        if (requestId !== searchRequestIdRef.current || searchCommittedRef.current) {
+          return
+        }
         const allResults = res.data.results || []
         const validMovies = filterValidMovies(allResults).slice(0, 5)
         setSearchResults(validMovies)
         setShowSearchResults(true)
       } catch (error) {
         console.error('Search error:', error)
+        if (requestId !== searchRequestIdRef.current || searchCommittedRef.current) {
+          return
+        }
         setSearchResults([])
       } finally {
-        setSearchLoading(false)
+        if (requestId === searchRequestIdRef.current && !searchCommittedRef.current) {
+          setSearchLoading(false)
+        }
       }
     } else {
       setShowSearchResults(false)
@@ -72,17 +84,29 @@ export const Layout = ({ children }: LayoutProps) => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
+      searchCommittedRef.current = true
+      searchRequestIdRef.current++
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
       setSearchQuery('')
       setShowSearchResults(false)
+      setSearchResults([])
     }
   }
 
   const handleSelectMovie = (movie: Movie) => {
     const id = movie.kinopoisk_id ? `kp_${movie.kinopoisk_id}` : movie.id
+    searchCommittedRef.current = true
+    searchRequestIdRef.current++
     navigate(`/movie/${id}`)
     setSearchQuery('')
     setShowSearchResults(false)
+    setSearchResults([])
+  }
+
+  const getSearchPosterUrl = (movie: Movie) => {
+    const raw = movie.posterUrlPreview || movie.poster_path || ''
+    const optimized = typeof raw === 'string' ? raw.replace('/kp_big/', '/kp_small/') : raw
+    return getImageUrl(optimized)
   }
 
   return (
@@ -197,8 +221,10 @@ export const Layout = ({ children }: LayoutProps) => {
                       >
                         <Box
                           component="img"
-                          src={movie.poster_path || movie.posterUrlPreview || '/placeholder.png'}
+                          src={getSearchPosterUrl(movie)}
                           alt={movie.title}
+                          loading="lazy"
+                          decoding="async"
                           sx={{
                             width: 45,
                             height: 65,
