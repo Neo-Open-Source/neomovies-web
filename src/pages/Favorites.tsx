@@ -119,6 +119,7 @@ export const Favorites = () => {
             gap: { xs: 2, sm: 2.5 },
             alignItems: 'stretch',
             justifyItems: 'stretch',
+            overflow: 'visible',
           }}
         >
             {favorites.map((favorite) => {
@@ -139,7 +140,18 @@ export const Favorites = () => {
               } as Movie
 
               return (
-                <Box key={favorite.id} sx={{ position: 'relative', width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
+                <Box
+                  key={favorite.id}
+                  sx={{
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    overflow: 'visible',
+                    zIndex: 0,
+                    '&:hover': { zIndex: 2 },
+                  }}
+                >
                   <MovieCard movie={movie} onClick={handleMovieClick} hideFavoriteButton={true} />
                   <Button
                     size="small"

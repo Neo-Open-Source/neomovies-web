@@ -84,10 +84,13 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
         display: 'flex',
         flexDirection: 'column',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        position: 'relative',
+        zIndex: 0,
         overflow: 'hidden',
         '&:hover': {
           transform: 'translateY(-8px)',
           boxShadow: 6,
+          zIndex: 1,
         },
       }}
     >
