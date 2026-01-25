@@ -151,7 +151,8 @@ export const Favorites = () => {
                       top: 8,
                       right: 8,
                       zIndex: 10,
-                      minWidth: 'auto',
+                      minWidth: 0,
+                      whiteSpace: 'nowrap',
                       px: 1,
                       py: 0.5,
                     }}

@@ -78,6 +78,7 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
       sx={{
         cursor: 'pointer',
         width: '100%',
+        minWidth: 0,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -135,8 +136,8 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
           </IconButton>
         )}
       </Box>
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography gutterBottom variant="h6" component="div" noWrap>
+      <CardContent sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Typography gutterBottom variant="h6" component="div" noWrap sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {title}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
