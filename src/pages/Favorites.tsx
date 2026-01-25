@@ -97,7 +97,7 @@ export const Favorites = () => {
           </Alert>
         )}
       </Box>
-@@
+
       {favorites.length === 0 ? (
         <Box>
           <Alert severity="info">
