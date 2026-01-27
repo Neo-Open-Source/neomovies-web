@@ -12,9 +12,13 @@ import {
   MenuItem,
   Paper,
   CircularProgress,
+  IconButton,
+  Alert,
+  useMediaQuery,
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import PersonIcon from '@mui/icons-material/Person'
+import CloseIcon from '@mui/icons-material/Close'
 import { useNavigate } from 'react-router-dom'
 import { getImageUrl, moviesAPI } from '../api'
 import { filterValidMovies } from '../utils/filterMovies'
@@ -35,6 +39,18 @@ export const Layout = ({ children }: LayoutProps) => {
   const searchRequestIdRef = useRef(0)
   const searchCommittedRef = useRef(false)
   const navigate = useNavigate()
+
+  const isMobile = useMediaQuery('(max-width:600px)')
+  const [mobileAppBannerDismissed, setMobileAppBannerDismissed] = useState(true)
+
+  useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem('mobile_app_banner_dismissed')
+      setMobileAppBannerDismissed(dismissed === '1')
+    } catch {
+      setMobileAppBannerDismissed(false)
+    }
+  }, [])
 
   useEffect(() => {
     // Check if user is logged in
@@ -111,6 +127,38 @@ export const Layout = ({ children }: LayoutProps) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {isMobile && !mobileAppBannerDismissed && (
+        <Box sx={{ px: 1, pt: 1, backgroundColor: '#0f0f10' }}>
+          <Alert
+            severity="info"
+            sx={{
+              backgroundColor: '#121212',
+              color: '#fff',
+              border: '1px solid #222',
+              '& .MuiAlert-icon': { color: '#1976d2' },
+              '& a': { color: '#90caf9', fontWeight: 700, textDecoration: 'none' },
+            }}
+            action={
+              <IconButton
+                aria-label="close"
+                size="small"
+                onClick={() => {
+                  try {
+                    localStorage.setItem('mobile_app_banner_dismissed', '1')
+                  } catch {}
+                  setMobileAppBannerDismissed(true)
+                }}
+              >
+                <CloseIcon fontSize="inherit" sx={{ color: '#999' }} />
+              </IconButton>
+            }
+          >
+            Доступно мобильное приложение —{' '}
+            <a href="https://app.neomovies.ru" target="_blank" rel="noreferrer">app.neomovies.ru</a>
+          </Alert>
+        </Box>
+      )}
+
       {/* Top Header */}
       <AppBar position="sticky" elevation={0} sx={{ backgroundColor: '#0f0f10', borderBottom: '1px solid #222' }}>
         <Toolbar sx={{ justifyContent: 'space-between', py: 0.5, px: { xs: 1, sm: 2 }, gap: 1, minHeight: 'auto' }}>
