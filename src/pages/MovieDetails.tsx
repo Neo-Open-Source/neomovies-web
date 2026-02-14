@@ -21,7 +21,8 @@ export const MovieDetails = () => {
   const { id } = useParams<{ id: string }>()
   const [movie, setMovie] = useState<Movie | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedPlayer, setSelectedPlayer] = useState<'lumex' | 'collaps'>('lumex')
+  // Установка Collaps по умолчанию
+  const [selectedPlayer, setSelectedPlayer] = useState<'lumex' | 'collaps'>('collaps')
   const [playerUrl, setPlayerUrl] = useState<string | null>(null)
   const [playerHtml, setPlayerHtml] = useState<string | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -32,7 +33,6 @@ export const MovieDetails = () => {
     setIsLoggedIn(!!token)
   }, [])
 
-  // Sync favorite status with cache
   useEffect(() => {
     if (!movie) return
 
@@ -56,14 +56,13 @@ export const MovieDetails = () => {
 
       try {
         setLoading(true)
-        // Parse kp_ prefix if present
         const movieId = id.startsWith('kp_') ? id : `kp_${id}`
         const res = await moviesAPI.getMovieById(movieId)
         setMovie(res.data)
         
-        // Auto-load default player after movie is loaded
+        // Автозагрузка Collaps
         setTimeout(() => {
-          loadPlayer(res.data, 'lumex')
+          loadPlayer(res.data, 'collaps')
         }, 500)
       } catch (error) {
         // silent fail
@@ -79,9 +78,7 @@ export const MovieDetails = () => {
     try {
       const kpId = movieData.externalIds?.kp || movieData.kinopoisk_id || movieData.filmId
       
-      if (!kpId) {
-        return
-      }
+      if (!kpId) return
 
       let response = ''
       if (player === 'lumex') {
@@ -92,27 +89,22 @@ export const MovieDetails = () => {
         response = res.data
       }
 
-      // Check if response is HTML or URL
       if (response.startsWith('<')) {
-        // It's HTML, extract iframe src
         const srcMatch = response.match(/src="([^"]+)"/i)
         if (srcMatch && srcMatch[1]) {
           setPlayerUrl(srcMatch[1])
           setPlayerHtml(null)
         } else {
-          // Try to extract from data-src or other attributes
           const dataSrcMatch = response.match(/data-src="([^"]+)"/i)
           if (dataSrcMatch && dataSrcMatch[1]) {
             setPlayerUrl(dataSrcMatch[1])
             setPlayerHtml(null)
           } else {
-            // Fallback: use HTML directly
             setPlayerHtml(response)
             setPlayerUrl(null)
           }
         }
       } else if (response && response.trim()) {
-        // It's a URL
         setPlayerUrl(response)
         setPlayerHtml(null)
       }
@@ -132,7 +124,6 @@ export const MovieDetails = () => {
       alert('Пожалуйста, авторизуйтесь, чтобы добавить фильм в избранное')
       return
     }
-
     if (!movie) return
 
     try {
@@ -151,7 +142,6 @@ export const MovieDetails = () => {
           year: typeof year === 'number' ? year : 0,
         })
       }
-      // state will update via cache subscription
     } catch (error) {
       alert('Ошибка при обновлении избранного')
     }
@@ -187,7 +177,6 @@ export const MovieDetails = () => {
           gap: { xs: 2, sm: 4 },
         }}
       >
-        {/* Poster */}
         <Box>
           <Box
             component="img"
@@ -201,7 +190,6 @@ export const MovieDetails = () => {
           />
         </Box>
 
-        {/* Info */}
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <Typography variant="h4" component="h1">
@@ -211,9 +199,7 @@ export const MovieDetails = () => {
               onClick={handleFavoriteClick}
               sx={{
                 color: isFavorite ? '#ff0000' : '#999',
-                '&:hover': {
-                  color: '#ff0000',
-                },
+                '&:hover': { color: '#ff0000' },
               }}
             >
               {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
@@ -244,13 +230,7 @@ export const MovieDetails = () => {
             {movie.overview || movie.description || 'Описание недоступно'}
           </Typography>
 
-          {movie.runtime && (
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Длительность: {movie.runtime} минут
-            </Typography>
-          )}
-
-          {/* Players */}
+          {/* Кнопки плееров: Collaps теперь первый */}
           <Box sx={{ mt: 4 }}>
             <Typography variant="h6" gutterBottom>
               Смотреть онлайн
@@ -258,20 +238,20 @@ export const MovieDetails = () => {
             <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 3, gap: 2, alignItems: { xs: 'stretch', sm: 'center' } }}>
               <Stack direction="row" sx={{ gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Button
-                  variant={selectedPlayer === 'lumex' ? 'contained' : 'outlined'}
-                  startIcon={<PlayArrowIcon />}
-                  onClick={() => handlePlayerChange('lumex')}
-                  size="small"
-                >
-                  Lumex
-                </Button>
-                <Button
                   variant={selectedPlayer === 'collaps' ? 'contained' : 'outlined'}
                   startIcon={<PlayArrowIcon />}
                   onClick={() => handlePlayerChange('collaps')}
                   size="small"
                 >
                   Collaps
+                </Button>
+                <Button
+                  variant={selectedPlayer === 'lumex' ? 'contained' : 'outlined'}
+                  startIcon={<PlayArrowIcon />}
+                  onClick={() => handlePlayerChange('lumex')}
+                  size="small"
+                >
+                  Lumex
                 </Button>
               </Stack>
               <Box sx={{ display: { xs: 'block', sm: 'inline' } }}>
