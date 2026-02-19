@@ -1,9 +1,6 @@
-# 🎬 Neo Movies
+<img src="public/rights-banner.svg" alt="Trans Rights are Human Rights banner" width="100%" />
 
-<div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; background: #c6f3ff; border: 1px solid #9bdde9; border-radius: 8px; font-weight: 700;">
-  <img src="public/pride_flag.avif" alt="Pride flag" width="18" height="18" style="border-radius: 3px;" />
-  <span>Trans Rights are Human Rights! We support trans people, femboys and all LGBTQIA+ people.</span>
-</div>
+# 🎬 Neo Movies
 
 <div align="center">
   <img src="public/logo.png" alt="Neo Movies Logo" width="200"/>
