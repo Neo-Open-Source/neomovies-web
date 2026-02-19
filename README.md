@@ -1,5 +1,10 @@
 # 🎬 Neo Movies
 
+<div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; background: #c6f3ff; border: 1px solid #9bdde9; border-radius: 8px; font-weight: 700;">
+  <img src="public/pride_flag.avif" alt="Pride flag" width="18" height="18" style="border-radius: 3px;" />
+  <span>Trans Rights are Human Rights! We support trans people, femboys and all LGBTQIA+ people.</span>
+</div>
+
 <div align="center">
   <img src="public/logo.png" alt="Neo Movies Logo" width="200"/>
   <p><strong>Современный онлайн-сервис с удобным интерфейсом</strong></p>
