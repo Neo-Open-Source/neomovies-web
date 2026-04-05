@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { Box, CircularProgress, Typography, Button } from '@mui/material'
 import { apiClient } from '../api/client'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const NEO_ID_URL = (import.meta.env.VITE_NEO_ID_URL || 'https://id.neomovies.ru').replace(/\/$/, '')
+const NEO_ID_API_KEY = import.meta.env.VITE_NEO_ID_API_KEY || ''
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '')
 
 function storeTokens(token: string, refreshToken: string, user: any) {
   localStorage.setItem('token', token)
@@ -20,13 +22,14 @@ function storeTokens(token: string, refreshToken: string, user: any) {
   window.dispatchEvent(new Event('auth-changed'))
 }
 
-async function exchangeToken(neoToken: string, neoRefresh: string): Promise<void> {
+async function exchangeNeoToken(neoToken: string, neoRefresh: string): Promise<void> {
   try {
+    // Exchange Neo ID token for local NeoMovies session
     const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/callback`, { token: neoToken })
     const data = resp.data?.data || resp.data
     storeTokens(data.token, data.refreshToken, data.user)
   } catch {
-    // Fallback: use Neo ID token directly if API not configured
+    // Fallback: use Neo ID token directly
     storeTokens(neoToken, neoRefresh || neoToken, null)
   }
 }
@@ -44,7 +47,8 @@ export const NeoIDAuth = () => {
       if (e.data?.type !== 'neo_id_auth') return
       const { access_token, refresh_token } = e.data
       if (!access_token) { setError('No token received'); setStatus('error'); return }
-      await exchangeToken(access_token, refresh_token || '')
+      setStatus('idle')
+      await exchangeNeoToken(access_token, refresh_token || '')
       navigate('/', { replace: true })
     }
     window.addEventListener('message', onMessage)
@@ -58,11 +62,11 @@ export const NeoIDAuth = () => {
     if (pending) {
       localStorage.removeItem('neo_id_pending_token')
       localStorage.removeItem('neo_id_pending_refresh')
-      exchangeToken(pending, pendingRefresh || '').then(() => navigate('/', { replace: true }))
+      exchangeNeoToken(pending, pendingRefresh || '').then(() => navigate('/', { replace: true }))
     }
   }, [navigate])
 
-  // Handle token in URL hash (redirect flow fallback)
+  // Handle token in URL hash (redirect flow)
   useEffect(() => {
     const hash = window.location.hash
     if (!hash) return
@@ -71,7 +75,7 @@ export const NeoIDAuth = () => {
     const refresh = params.get('refresh_token') || ''
     if (token) {
       window.history.replaceState({}, '', window.location.pathname)
-      exchangeToken(token, refresh).then(() => navigate('/', { replace: true }))
+      exchangeNeoToken(token, refresh).then(() => navigate('/', { replace: true }))
     }
   }, [navigate])
 
@@ -80,40 +84,54 @@ export const NeoIDAuth = () => {
   }, [])
 
   const openPopup = async () => {
+    if (!NEO_ID_API_KEY) {
+      setError('NEO_ID_API_KEY not configured in environment')
+      setStatus('error')
+      return
+    }
+
     setStatus('opening')
     setError('')
+
     try {
       const state = Math.random().toString(36).slice(2)
       localStorage.setItem('neo_id_state', state)
       const callbackURL = `${window.location.origin}/auth/neo-id/callback`
 
-      let loginURL = ''
-      try {
-        const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/login`, {
-          redirect_url: callbackURL, state, popup: true,
-        })
-        loginURL = resp.data?.login_url || resp.data?.data?.login_url || ''
-      } catch {
-        const neoIDBase = (import.meta.env.VITE_NEO_ID_URL || 'https://id.neomovies.ru').replace(/\/$/, '')
-        const apiKey = import.meta.env.VITE_NEO_ID_API_KEY || ''
-        if (!apiKey) { setError('NEO_ID_API_KEY not configured'); setStatus('error'); return }
-        const resp = await fetch(`${neoIDBase}/api/site/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ redirect_url: callbackURL, state, mode: 'popup' }),
-        })
-        const data = await resp.json()
-        const raw = data.login_url || ''
-        loginURL = raw.startsWith('/') ? `${neoIDBase}${raw}` : raw
+      // Call Neo ID directly — no need for intermediate API
+      const resp = await fetch(`${NEO_ID_URL}/api/site/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${NEO_ID_API_KEY}`,
+        },
+        body: JSON.stringify({
+          redirect_url: callbackURL,
+          state,
+          mode: 'popup',
+        }),
+      })
+
+      if (!resp.ok) {
+        const text = await resp.text()
+        throw new Error(`Neo ID error ${resp.status}: ${text}`)
       }
 
-      if (!loginURL) { setError('Failed to get login URL'); setStatus('error'); return }
+      const data = await resp.json()
+      const rawURL: string = data.login_url || ''
+      if (!rawURL) throw new Error('No login_url returned from Neo ID')
 
+      // Make absolute URL
+      const loginURL = rawURL.startsWith('/') ? `${NEO_ID_URL}${rawURL}` : rawURL
+
+      // Open popup
       const w = 480, h = 640
       const left = window.screenX + (window.outerWidth - w) / 2
       const top = window.screenY + (window.outerHeight - h) / 2
-      const popup = window.open(loginURL, 'neo_id_auth',
-        `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`)
+      const popup = window.open(
+        loginURL, 'neo_id_auth',
+        `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
+      )
 
       if (!popup) {
         // Popup blocked — fallback to redirect
@@ -152,14 +170,20 @@ export const NeoIDAuth = () => {
             <Typography variant="body2" sx={{ color: '#888' }}>
               Complete sign in in the popup window
             </Typography>
-            <Button variant="text" size="small" onClick={() => popupRef.current?.focus()} sx={{ color: '#666', fontSize: '0.75rem' }}>
+            <Button
+              variant="text" size="small"
+              onClick={() => popupRef.current?.focus()}
+              sx={{ color: '#666', fontSize: '0.75rem' }}
+            >
               Click here if the window is hidden
             </Button>
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {error && (
-              <Typography variant="body2" sx={{ color: '#e53935', mb: 1 }}>{error}</Typography>
+              <Typography variant="body2" sx={{ color: '#e53935', mb: 1, fontSize: '0.8rem' }}>
+                {error}
+              </Typography>
             )}
             <Button
               variant="contained"
