@@ -32,6 +32,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [userName, setUserName] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [searchResults, setSearchResults] = useState<Movie[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
@@ -57,11 +58,28 @@ export const Layout = ({ children }: LayoutProps) => {
     const token = localStorage.getItem('token')
     const email = localStorage.getItem('userEmail')
     const name = localStorage.getItem('userName')
-    
+    const avatar = localStorage.getItem('userAvatar')
+
     if (token && email) {
       setUserEmail(email)
       setUserName(name || email.split('@')[0])
+      setUserAvatar(avatar || '')
     }
+
+    // Listen for auth changes
+    const onAuthChanged = () => {
+      const t = localStorage.getItem('token')
+      const e = localStorage.getItem('userEmail')
+      const n = localStorage.getItem('userName')
+      const a = localStorage.getItem('userAvatar')
+      if (t && e) {
+        setUserEmail(e); setUserName(n || e.split('@')[0]); setUserAvatar(a || '')
+      } else {
+        setUserEmail(null); setUserName(null); setUserAvatar(null)
+      }
+    }
+    window.addEventListener('auth-changed', onAuthChanged)
+    return () => window.removeEventListener('auth-changed', onAuthChanged)
   }, [])
 
   const handleSearchInput = async (value: string) => {
@@ -326,13 +344,16 @@ export const Layout = ({ children }: LayoutProps) => {
                   '&:hover': { opacity: 0.8 },
                 }}
               >
-                <PersonIcon
-                  sx={{
-                    width: { xs: 24, sm: 28 },
-                    height: { xs: 24, sm: 28 },
-                    color: '#1976d2',
-                  }}
-                />
+                {userAvatar ? (
+                  <Box
+                    component="img"
+                    src={userAvatar}
+                    referrerPolicy="no-referrer"
+                    sx={{ width: { xs: 26, sm: 30 }, height: { xs: 26, sm: 30 }, borderRadius: '50%', objectFit: 'cover', border: '1px solid #333' }}
+                  />
+                ) : (
+                  <PersonIcon sx={{ width: { xs: 24, sm: 28 }, height: { xs: 24, sm: 28 }, color: '#1976d2' }} />
+                )}
                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{userName}</Box>
               </Button>
               <Menu
@@ -364,9 +385,14 @@ export const Layout = ({ children }: LayoutProps) => {
                     localStorage.removeItem('refreshToken')
                     localStorage.removeItem('userEmail')
                     localStorage.removeItem('userName')
+                    localStorage.removeItem('userAvatar')
+                    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC'
+                    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC'
                     setUserName(null)
                     setUserEmail(null)
+                    setUserAvatar(null)
                     setAnchorEl(null)
+                    window.dispatchEvent(new Event('auth-changed'))
                     navigate('/')
                   }}
                   sx={{ color: '#ff6b6b' }}

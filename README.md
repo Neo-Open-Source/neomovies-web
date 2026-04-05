@@ -3,7 +3,7 @@
 # 🎬 Neo Movies
 
 <div align="center">
-  <img src="public/logo.png" alt="Neo Movies Logo" width="200"/>
+  <img src="public/icon-512-maskable.png" alt="Neo Movies Logo" width="200"/>
   <p><strong>Современный онлайн-сервис с удобным интерфейсом</strong></p>
 </div>
 

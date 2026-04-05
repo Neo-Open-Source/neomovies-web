@@ -3,7 +3,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { TermsGuard } from './components/TermsGuard'
-import { Home, Search, MovieDetails, MoviesTop, TVTop, NeoIDAuth, Profile, Favorites, Terms } from './pages'
+import { Home, Search, MovieDetails, MoviesTop, TVTop, NeoIDAuth, NeoIDCallback, Profile, Favorites, Terms } from './pages'
 import { FavoritesProvider } from './contexts/FavoritesContext'
 import { useEffect } from 'react'
 import './App.css'
@@ -104,6 +104,7 @@ function App() {
             <Routes>
               <Route path="/auth" element={<NeoIDAuth />} />
               <Route path="/auth/callback" element={<NeoIDAuth />} />
+              <Route path="/auth/neo-id/callback" element={<NeoIDCallback />} />
               <Route path="/terms" element={<Terms />} />
               <Route
                 path="*"
