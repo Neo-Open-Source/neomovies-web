@@ -23,6 +23,9 @@ function storeTokens(token: string, refreshToken: string, user: any) {
 }
 
 async function exchangeNeoToken(neoToken: string, neoRefresh: string): Promise<void> {
+  // Save Neo ID token for future popup sessions (skip login form)
+  localStorage.setItem('neo_id_access_token', neoToken)
+
   try {
     // Exchange Neo ID token for local NeoMovies session
     const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/callback`, { token: neoToken })
@@ -98,7 +101,7 @@ export const NeoIDAuth = () => {
       localStorage.setItem('neo_id_state', state)
       const callbackURL = `${window.location.origin}/auth/neo-id/callback`
 
-      // Call Neo ID directly — no need for intermediate API
+      // Call Neo ID SiteLogin to get authorize URL
       const resp = await fetch(`${NEO_ID_URL}/api/site/login`, {
         method: 'POST',
         headers: {
@@ -123,7 +126,13 @@ export const NeoIDAuth = () => {
       if (!rawURL) throw new Error('No login_url returned from Neo ID')
 
       // Make absolute URL
-      const loginURL = rawURL.startsWith('/') ? `${NEO_ID_URL}${rawURL}` : rawURL
+      let loginURL = rawURL.startsWith('/') ? `${NEO_ID_URL}${rawURL}` : rawURL
+
+      // If user has a stored Neo ID token, pass it so /authorize can skip login form
+      const storedNeoToken = localStorage.getItem('neo_id_access_token') || ''
+      if (storedNeoToken && loginURL.includes('/authorize')) {
+        loginURL += `&token=${encodeURIComponent(storedNeoToken)}`
+      }
 
       // Open popup
       const w = 480, h = 640
