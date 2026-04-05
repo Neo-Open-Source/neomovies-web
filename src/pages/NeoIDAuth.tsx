@@ -104,6 +104,7 @@ export const NeoIDAuth = () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${NEO_ID_API_KEY}`,
+          'X-API-Key': NEO_ID_API_KEY,
         },
         body: JSON.stringify({
           redirect_url: callbackURL,
