@@ -4,7 +4,6 @@ import { Box, CircularProgress, Typography, Button } from '@mui/material'
 import { apiClient } from '../api/client'
 
 const NEO_ID_URL = (import.meta.env.VITE_NEO_ID_URL || 'https://id.neomovies.ru').replace(/\/$/, '')
-const NEO_ID_API_KEY = import.meta.env.VITE_NEO_ID_API_KEY || ''
 const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '')
 
 function storeTokens(token: string, refreshToken: string, user: any) {
@@ -88,12 +87,6 @@ export const NeoIDAuth = () => {
   }, [])
 
   const openPopup = async () => {
-    if (!NEO_ID_API_KEY) {
-      setError('NEO_ID_API_KEY not configured in environment')
-      setStatus('error')
-      return
-    }
-
     setStatus('opening')
     setError('')
 
@@ -102,31 +95,16 @@ export const NeoIDAuth = () => {
       localStorage.setItem('neo_id_state', state)
       const callbackURL = `${window.location.origin}/auth/neo-id/callback`
 
-      // Call Neo ID to get login URL
-      const resp = await fetch(`${NEO_ID_URL}/api/service/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${NEO_ID_API_KEY}`,
-          'X-API-Key': NEO_ID_API_KEY,
-        },
-        body: JSON.stringify({
-          redirect_url: callbackURL,
-          state,
-          mode: 'popup',
-        }),
+      // Get login URL via neomovies-api backend (keeps API key server-side)
+      const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/login`, {
+        redirect_url: callbackURL,
+        state,
+        popup: true,
       })
-
-      if (!resp.ok) {
-        const text = await resp.text()
-        throw new Error(`Neo ID error ${resp.status}: ${text}`)
-      }
-
-      const data = await resp.json()
+      const data = resp.data?.data || resp.data
       const rawURL: string = data.login_url || ''
-      if (!rawURL) throw new Error('No login_url returned from Neo ID')
+      if (!rawURL) throw new Error('No login_url returned')
 
-      // Make absolute URL
       const loginURL = rawURL.startsWith('/') ? `${NEO_ID_URL}${rawURL}` : rawURL
 
       // Open popup
