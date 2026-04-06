@@ -12,10 +12,9 @@ interface UserProfile {
   name: string
   email: string
   avatar: string
-  provider?: string
-  neoId?: string
-  isAdmin?: boolean
-  createdAt?: string
+  neo_id?: string
+  is_admin?: boolean
+  created_at?: string
 }
 
 export const Profile = () => {
@@ -38,16 +37,15 @@ export const Profile = () => {
       const resp = await apiClient.get('/api/v1/auth/profile')
       const user = resp.data
       setProfile(user)
-      // Sync to localStorage
       if (user.name) localStorage.setItem('userName', user.name)
       if (user.email) localStorage.setItem('userEmail', user.email)
+      if (user.avatar) localStorage.setItem('userAvatar', user.avatar)
     } catch {
-      // Fallback to localStorage
       setProfile({
         id: '',
         name: localStorage.getItem('userName') || '',
         email: localStorage.getItem('userEmail') || '',
-        avatar: '',
+        avatar: localStorage.getItem('userAvatar') || '',
       })
     } finally {
       setLoading(false)
@@ -59,8 +57,9 @@ export const Profile = () => {
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('userEmail')
     localStorage.removeItem('userName')
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC'
-    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC'
+    localStorage.removeItem('userAvatar')
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
+    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
     window.dispatchEvent(new Event('auth-changed'))
     navigate('/')
   }
@@ -72,7 +71,7 @@ export const Profile = () => {
       await apiClient.delete('/api/v1/auth/delete-account')
       handleLogout()
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete account')
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to delete account')
     } finally {
       setDeleting(false)
       setDeleteDialogOpen(false)
@@ -82,11 +81,6 @@ export const Profile = () => {
   const initials = profile?.name
     ? profile.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)
     : profile?.email?.[0]?.toUpperCase() || '?'
-
-  const providerLabel = profile?.provider === 'neo_id' ? 'Neo ID'
-    : profile?.provider === 'google' ? 'Google'
-    : profile?.provider ? profile.provider
-    : 'Email'
 
   return (
     <Container maxWidth="sm">
@@ -114,13 +108,11 @@ export const Profile = () => {
                   {profile?.name || profile?.email?.split('@')[0]}
                 </Typography>
               )}
-              {profile?.provider && (
-                <Chip
-                  label={`via ${providerLabel}`}
-                  size="small"
-                  sx={{ mt: 0.75, fontSize: '0.7rem', height: 20, bgcolor: '#1a1a1a', border: '1px solid #333' }}
-                />
-              )}
+              <Chip
+                label="via Neo ID"
+                size="small"
+                sx={{ mt: 0.75, fontSize: '0.7rem', height: 20, bgcolor: '#1a1a1a', border: '1px solid #333' }}
+              />
             </Box>
 
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -145,13 +137,13 @@ export const Profile = () => {
                       <Typography variant="body2" sx={{ mt: 0.25 }}>{profile?.name || '—'}</Typography>
                     )}
                   </Box>
-                  {profile?.neoId && (
+                  {profile?.neo_id && (
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.68rem' }}>
                         Neo ID
                       </Typography>
                       <Typography variant="body2" sx={{ mt: 0.25, fontFamily: 'monospace', fontSize: '0.78rem', wordBreak: 'break-all' }}>
-                        {profile.neoId}
+                        {profile.neo_id}
                       </Typography>
                     </Box>
                   )}

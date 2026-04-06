@@ -72,7 +72,7 @@ apiClient.interceptors.request.use(
 // Функция для обновления токена
 const refreshToken = async (): Promise<string | null> => {
   try {
-    const refreshTokenValue = getTokenFromCookie() || localStorage.getItem('refreshToken')
+    const refreshTokenValue = localStorage.getItem('refreshToken')
     if (!refreshTokenValue) {
       return null
     }
@@ -89,31 +89,24 @@ const refreshToken = async (): Promise<string | null> => {
       localStorage.setItem('token', newAccessToken)
       localStorage.setItem('refreshToken', newRefreshToken)
       
-      // Сохраняем в cookies на 30 дней
       const expiresIn = new Date()
       expiresIn.setDate(expiresIn.getDate() + 30)
-      document.cookie = `token=${newAccessToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax; Secure`
-      document.cookie = `refreshToken=${newRefreshToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax; Secure`
+      document.cookie = `token=${newAccessToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
+      document.cookie = `refreshToken=${newRefreshToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
       
       return newAccessToken
     }
 
     return null
-  } catch (error) {
-    console.error('Failed to refresh token:', error)
-    // Очищаем токены при ошибке обновления
+  } catch {
+    // Refresh failed — clear tokens silently, let UI react via auth-changed
     localStorage.removeItem('token')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('userName')
     localStorage.removeItem('userEmail')
-    
-    // Очищаем cookies
     document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
     document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
-    
-    // Отправляем событие для обновления UI
     window.dispatchEvent(new Event('auth-changed'))
-    
     return null
   }
 }

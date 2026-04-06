@@ -64,30 +64,14 @@ const theme = createTheme({
   },
 })
 
-// Компонент для обработки событий авторизации
+// Редирект на /auth при истечении сессии (токены уже очищены в client.ts)
 function AuthHandler() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const handleAuthExpired = () => {
-      // Очищаем токены
-      localStorage.removeItem('token')
-      localStorage.removeItem('refreshToken')
-      localStorage.removeItem('userName')
-      localStorage.removeItem('userEmail')
-      
-      // Очищаем cookies
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
-      document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
-      
-      // Перенаправляем на страницу авторизации
-      navigate('/auth')
-    }
-
+    const handleAuthExpired = () => navigate('/auth')
     window.addEventListener('auth-expired', handleAuthExpired)
-    return () => {
-      window.removeEventListener('auth-expired', handleAuthExpired)
-    }
+    return () => window.removeEventListener('auth-expired', handleAuthExpired)
   }, [navigate])
 
   return null
@@ -103,7 +87,6 @@ function App() {
             <AuthHandler />
             <Routes>
               <Route path="/auth" element={<NeoIDAuth />} />
-              <Route path="/auth/callback" element={<NeoIDAuth />} />
               <Route path="/auth/neo-id/callback" element={<NeoIDCallback />} />
               <Route path="/terms" element={<Terms />} />
               <Route

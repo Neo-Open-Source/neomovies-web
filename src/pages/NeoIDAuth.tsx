@@ -23,11 +23,7 @@ function storeTokens(token: string, refreshToken: string, user: any) {
 }
 
 async function exchangeNeoToken(neoToken: string, neoRefresh: string): Promise<void> {
-  // Save Neo ID token for future popup sessions (skip login form)
-  localStorage.setItem('neo_id_access_token', neoToken)
-
   try {
-    // Exchange Neo ID token for local NeoMovies session
     const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/callback`, { token: neoToken })
     const data = resp.data?.data || resp.data
     storeTokens(data.token, data.refreshToken, data.user)
@@ -43,6 +39,11 @@ export const NeoIDAuth = () => {
   const [error, setError] = useState('')
   const popupRef = useRef<Window | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // If already logged in — go home
+  useEffect(() => {
+    if (localStorage.getItem('token')) navigate('/', { replace: true })
+  }, [])
 
   // Handle postMessage from popup
   useEffect(() => {
@@ -101,8 +102,8 @@ export const NeoIDAuth = () => {
       localStorage.setItem('neo_id_state', state)
       const callbackURL = `${window.location.origin}/auth/neo-id/callback`
 
-      // Call Neo ID SiteLogin to get authorize URL
-      const resp = await fetch(`${NEO_ID_URL}/api/site/login`, {
+      // Call Neo ID to get login URL
+      const resp = await fetch(`${NEO_ID_URL}/api/service/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,13 +127,7 @@ export const NeoIDAuth = () => {
       if (!rawURL) throw new Error('No login_url returned from Neo ID')
 
       // Make absolute URL
-      let loginURL = rawURL.startsWith('/') ? `${NEO_ID_URL}${rawURL}` : rawURL
-
-      // If user has a stored Neo ID token, pass it so /authorize can skip login form
-      const storedNeoToken = localStorage.getItem('neo_id_access_token') || ''
-      if (storedNeoToken && loginURL.includes('/authorize')) {
-        loginURL += `&token=${encodeURIComponent(storedNeoToken)}`
-      }
+      const loginURL = rawURL.startsWith('/') ? `${NEO_ID_URL}${rawURL}` : rawURL
 
       // Open popup
       const w = 480, h = 640
