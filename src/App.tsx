@@ -6,6 +6,7 @@ import { TermsGuard } from './components/TermsGuard'
 import { Home, Search, MovieDetails, MoviesTop, TVTop, NeoIDAuth, NeoIDCallback, Profile, Favorites, Terms } from './pages'
 import { FavoritesProvider } from './contexts/FavoritesContext'
 import { useEffect } from 'react'
+import { startAuthSessionKeepAlive } from './api/client'
 import './App.css'
 
 const theme = createTheme({
@@ -71,7 +72,11 @@ function AuthHandler() {
   useEffect(() => {
     const handleAuthExpired = () => navigate('/auth')
     window.addEventListener('auth-expired', handleAuthExpired)
-    return () => window.removeEventListener('auth-expired', handleAuthExpired)
+    const stopKeepAlive = startAuthSessionKeepAlive()
+    return () => {
+      window.removeEventListener('auth-expired', handleAuthExpired)
+      stopKeepAlive()
+    }
   }, [navigate])
 
   return null

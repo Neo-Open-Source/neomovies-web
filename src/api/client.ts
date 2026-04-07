@@ -1,5 +1,10 @@
 import axios from 'axios'
 const API_URL = import.meta.env.VITE_API_URL
+const AUTH_REFRESH_INTERVAL_MS = 15 * 60 * 1000
+
+let refreshPromise: Promise<string | null> | null = null
+let refreshTimer: number | null = null
+let visibilityHandler: (() => void) | null = null
 
 // Создание экземпляра Axios с базовыми настройками
 export const apiClient = axios.create({
@@ -9,6 +14,31 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+export const setAuthTokens = (accessToken: string, refreshToken: string) => {
+  localStorage.setItem('token', accessToken)
+  localStorage.setItem('refreshToken', refreshToken)
+
+  const expiresIn = new Date()
+  expiresIn.setDate(expiresIn.getDate() + 30)
+  document.cookie = `token=${accessToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
+  document.cookie = `refreshToken=${refreshToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
+  apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+}
+
+export const clearAuthState = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('refreshToken')
+  localStorage.removeItem('userName')
+  localStorage.removeItem('userEmail')
+  localStorage.removeItem('userAvatar')
+  localStorage.removeItem('neo_id_access_token')
+  localStorage.removeItem('neo_id_refresh_token')
+  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
+  document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
+  delete apiClient.defaults.headers.common['Authorization']
+  window.dispatchEvent(new Event('auth-changed'))
+}
 
 // Функция для получения токена из cookies
 const getTokenFromCookie = (): string | null => {
@@ -70,7 +100,12 @@ apiClient.interceptors.request.use(
 )
 
 // Функция для обновления токена
-const refreshToken = async (): Promise<string | null> => {
+export const refreshToken = async (): Promise<string | null> => {
+  if (refreshPromise) {
+    return refreshPromise
+  }
+
+  refreshPromise = (async () => {
   try {
     const refreshTokenValue = localStorage.getItem('refreshToken')
     if (!refreshTokenValue) {
@@ -86,28 +121,64 @@ const refreshToken = async (): Promise<string | null> => {
     const newRefreshToken = data.refreshToken
 
     if (newAccessToken && newRefreshToken) {
-      localStorage.setItem('token', newAccessToken)
-      localStorage.setItem('refreshToken', newRefreshToken)
-      
-      const expiresIn = new Date()
-      expiresIn.setDate(expiresIn.getDate() + 30)
-      document.cookie = `token=${newAccessToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
-      document.cookie = `refreshToken=${newRefreshToken}; path=/; expires=${expiresIn.toUTCString()}; SameSite=Lax`
-      
+      setAuthTokens(newAccessToken, newRefreshToken)
       return newAccessToken
     }
 
     return null
-  } catch {
-    // Refresh failed — clear tokens silently, let UI react via auth-changed
-    localStorage.removeItem('token')
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('userName')
-    localStorage.removeItem('userEmail')
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
-    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
-    window.dispatchEvent(new Event('auth-changed'))
+  } catch (err: any) {
+    const status = err?.response?.status
+    // Clear auth only when server says token is invalid/expired.
+    // Keep current state on transient network failures.
+    if (status === 400 || status === 401) {
+      clearAuthState()
+    }
     return null
+  }
+  })()
+
+  const result = await refreshPromise
+  refreshPromise = null
+  return result
+}
+
+export const startAuthSessionKeepAlive = () => {
+  if (refreshTimer !== null) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+    visibilityHandler = null
+  }
+
+  // Refresh on app start if user has a refresh token
+  if (localStorage.getItem('refreshToken')) {
+    void refreshToken()
+  }
+
+  refreshTimer = window.setInterval(() => {
+    if (document.visibilityState === 'visible' && localStorage.getItem('refreshToken')) {
+      void refreshToken()
+    }
+  }, AUTH_REFRESH_INTERVAL_MS)
+
+  visibilityHandler = () => {
+    if (document.visibilityState === 'visible' && localStorage.getItem('refreshToken')) {
+      void refreshToken()
+    }
+  }
+  document.addEventListener('visibilitychange', visibilityHandler)
+
+  return () => {
+    if (refreshTimer !== null) {
+      clearInterval(refreshTimer)
+      refreshTimer = null
+    }
+    if (visibilityHandler) {
+      document.removeEventListener('visibilitychange', visibilityHandler)
+      visibilityHandler = null
+    }
   }
 }
 
@@ -136,9 +207,10 @@ apiClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`
         return apiClient(originalRequest)
       } else {
-        // Если не удалось обновить токен, отправляем событие для обновления UI
-        // Вместо редиректа на /auth, позволяем приложению обработать это событие
-        window.dispatchEvent(new Event('auth-expired'))
+        if (!localStorage.getItem('token')) {
+          // Tokens were invalid and have been cleared.
+          window.dispatchEvent(new Event('auth-expired'))
+        }
         return Promise.reject(error)
       }
     }

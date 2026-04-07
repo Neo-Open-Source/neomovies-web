@@ -6,6 +6,7 @@ import {
   DialogContentText, DialogActions, Alert, Skeleton, Chip
 } from '@mui/material'
 import { apiClient } from '../api'
+import { clearAuthState } from '../api/client'
 
 interface UserProfile {
   id: string
@@ -53,15 +54,7 @@ export const Profile = () => {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('userEmail')
-    localStorage.removeItem('userName')
-    localStorage.removeItem('userAvatar')
-    localStorage.removeItem('neo_id_access_token')
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
-    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
-    window.dispatchEvent(new Event('auth-changed'))
+    clearAuthState()
     navigate('/')
   }
 

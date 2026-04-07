@@ -1,23 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, CircularProgress, Typography, Button } from '@mui/material'
-import { apiClient } from '../api/client'
+import { apiClient, setAuthTokens } from '../api/client'
 
 const NEO_ID_URL = (import.meta.env.VITE_NEO_ID_URL || 'https://id.neomovies.ru').replace(/\/$/, '')
 const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '')
 
 function storeTokens(token: string, refreshToken: string, user: any) {
-  localStorage.setItem('token', token)
-  localStorage.setItem('refreshToken', refreshToken)
+  setAuthTokens(token, refreshToken)
   if (user?.email) localStorage.setItem('userEmail', user.email)
   if (user?.name) localStorage.setItem('userName', user.name)
   if (user?.avatar) localStorage.setItem('userAvatar', user.avatar)
   localStorage.setItem('acceptedTerms', 'true')
-  const exp = new Date()
-  exp.setDate(exp.getDate() + 30)
-  document.cookie = `token=${token}; path=/; expires=${exp.toUTCString()}; SameSite=Lax`
-  document.cookie = `refreshToken=${refreshToken}; path=/; expires=${exp.toUTCString()}; SameSite=Lax`
-  apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`
   window.dispatchEvent(new Event('auth-changed'))
 }
 
@@ -27,6 +21,8 @@ async function exchangeNeoToken(neoToken: string, neoRefresh: string): Promise<v
     refresh_token: neoRefresh || '',
   })
   const data = resp.data?.data || resp.data
+  if (data.neoAccess) localStorage.setItem('neo_id_access_token', data.neoAccess)
+  if (data.neoRefresh) localStorage.setItem('neo_id_refresh_token', data.neoRefresh)
   storeTokens(data.token, data.refreshToken, data.user)
 }
 
@@ -48,9 +44,14 @@ export const NeoIDAuth = () => {
       if (e.data?.type !== 'neo_id_auth') return
       const { access_token, refresh_token } = e.data
       if (!access_token) { setError('No token received'); setStatus('error'); return }
-      setStatus('idle')
-      await exchangeNeoToken(access_token, refresh_token || '')
-      navigate('/', { replace: true })
+      try {
+        setStatus('idle')
+        await exchangeNeoToken(access_token, refresh_token || '')
+        navigate('/', { replace: true })
+      } catch (err: any) {
+        setError(err?.response?.data?.error || err?.message || 'Failed to complete Neo ID sign in')
+        setStatus('error')
+      }
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
@@ -63,7 +64,12 @@ export const NeoIDAuth = () => {
     if (pending) {
       localStorage.removeItem('neo_id_pending_token')
       localStorage.removeItem('neo_id_pending_refresh')
-      exchangeNeoToken(pending, pendingRefresh || '').then(() => navigate('/', { replace: true }))
+      exchangeNeoToken(pending, pendingRefresh || '')
+        .then(() => navigate('/', { replace: true }))
+        .catch((err: any) => {
+          setError(err?.response?.data?.error || err?.message || 'Failed to complete Neo ID sign in')
+          setStatus('error')
+        })
     }
   }, [navigate])
 
@@ -76,7 +82,12 @@ export const NeoIDAuth = () => {
     const refresh = params.get('refresh_token') || ''
     if (token) {
       window.history.replaceState({}, '', window.location.pathname)
-      exchangeNeoToken(token, refresh).then(() => navigate('/', { replace: true }))
+      exchangeNeoToken(token, refresh)
+        .then(() => navigate('/', { replace: true }))
+        .catch((err: any) => {
+          setError(err?.response?.data?.error || err?.message || 'Failed to complete Neo ID sign in')
+          setStatus('error')
+        })
     }
   }, [navigate])
 

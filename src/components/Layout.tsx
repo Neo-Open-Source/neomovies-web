@@ -21,6 +21,7 @@ import PersonIcon from '@mui/icons-material/Person'
 import CloseIcon from '@mui/icons-material/Close'
 import { useNavigate } from 'react-router-dom'
 import { getImageUrl, moviesAPI } from '../api'
+import { clearAuthState } from '../api/client'
 import { filterValidMovies } from '../utils/filterMovies'
 import type { Movie } from '../types'
 
@@ -381,18 +382,11 @@ export const Layout = ({ children }: LayoutProps) => {
                 </MenuItem>
                 <MenuItem
                   onClick={() => {
-                    localStorage.removeItem('token')
-                    localStorage.removeItem('refreshToken')
-                    localStorage.removeItem('userEmail')
-                    localStorage.removeItem('userName')
-                    localStorage.removeItem('userAvatar')
-                    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC'
-                    document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC'
+                    clearAuthState()
                     setUserName(null)
                     setUserEmail(null)
                     setUserAvatar(null)
                     setAnchorEl(null)
-                    window.dispatchEvent(new Event('auth-changed'))
                     navigate('/')
                   }}
                   sx={{ color: '#ff6b6b' }}
