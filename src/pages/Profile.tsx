@@ -58,6 +58,7 @@ export const Profile = () => {
     localStorage.removeItem('userEmail')
     localStorage.removeItem('userName')
     localStorage.removeItem('userAvatar')
+    localStorage.removeItem('neo_id_access_token')
     document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
     document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax'
     window.dispatchEvent(new Event('auth-changed'))

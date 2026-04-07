@@ -22,14 +22,12 @@ function storeTokens(token: string, refreshToken: string, user: any) {
 }
 
 async function exchangeNeoToken(neoToken: string, neoRefresh: string): Promise<void> {
-  try {
-    const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/callback`, { token: neoToken })
-    const data = resp.data?.data || resp.data
-    storeTokens(data.token, data.refreshToken, data.user)
-  } catch {
-    // Fallback: use Neo ID token directly
-    storeTokens(neoToken, neoRefresh || neoToken, null)
-  }
+  const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/callback`, {
+    token: neoToken,
+    refresh_token: neoRefresh || '',
+  })
+  const data = resp.data?.data || resp.data
+  storeTokens(data.token, data.refreshToken, data.user)
 }
 
 export const NeoIDAuth = () => {
@@ -107,18 +105,19 @@ export const NeoIDAuth = () => {
 
       const loginURL = rawURL.startsWith('/') ? `${NEO_ID_URL}${rawURL}` : rawURL
 
+      const finalURL = loginURL
+
       // Open popup
       const w = 480, h = 640
       const left = window.screenX + (window.outerWidth - w) / 2
       const top = window.screenY + (window.outerHeight - h) / 2
       const popup = window.open(
-        loginURL, 'neo_id_auth',
+        finalURL, 'neo_id_auth',
         `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
       )
 
       if (!popup) {
-        // Popup blocked — fallback to redirect
-        window.location.href = loginURL
+        window.location.href = finalURL
         return
       }
 
