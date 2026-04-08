@@ -102,6 +102,21 @@ export const TorrentSelector = ({ kpId, type, title }: TorrentSelectorProps) => 
 
   // Получаем уникальные качества из торрентов
   const toQualityString = (q: unknown): string => String(q ?? '').trim()
+  const formatQualityLabel = (q: unknown): string => {
+    const raw = toQualityString(q)
+    if (!raw) return ''
+    const lower = raw.toLowerCase()
+    if (lower.endsWith('p') || lower.endsWith('k')) return raw
+    if (/^\d+$/.test(raw)) return `${raw}p`
+    return raw
+  }
+
+  const formatSizeGb = (value: unknown): string => {
+    const n = typeof value === 'number' ? value : Number(String(value ?? '').trim())
+    if (!Number.isFinite(n) || n <= 0) return String(value ?? '')
+    const gb = n / (1024 * 1024 * 1024)
+    return `${gb.toFixed(gb >= 10 ? 1 : 2)} GB`
+  }
 
   const availableQualities = Array.from(
     new Set(torrents.map((t) => toQualityString(t.quality)).filter(Boolean))
@@ -185,7 +200,7 @@ export const TorrentSelector = ({ kpId, type, title }: TorrentSelectorProps) => 
                           )
                         }}
                       >
-                        {quality}
+                        {formatQualityLabel(quality)}
                       </Button>
                     ))}
                   </Box>
@@ -236,8 +251,14 @@ export const TorrentSelector = ({ kpId, type, title }: TorrentSelectorProps) => 
                       primary={torrent.title}
                       secondary={
                         <>
-                          {torrent.quality && <Typography variant="caption">Качество: {torrent.quality}</Typography>}
-                          {torrent.size && <Typography variant="caption"> • Размер: {torrent.size}</Typography>}
+                          {torrent.quality && (
+                            <Typography variant="caption">
+                              Качество: {formatQualityLabel(torrent.quality)}
+                            </Typography>
+                          )}
+                          {torrent.size && (
+                            <Typography variant="caption"> • Размер: {formatSizeGb(torrent.size)}</Typography>
+                          )}
                           {torrent.seeds !== undefined && (
                             <Typography variant="caption"> • Сиды: {torrent.seeds}</Typography>
                           )}
