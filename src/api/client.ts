@@ -222,28 +222,19 @@ apiClient.interceptors.response.use(
 export const getImageUrl = (path: string | null | undefined): string => {
   if (!path) return '/images/placeholder.jpg'
 
-  // Extract type and ID from Kinopoisk URL
-  const kpPattern = /kinopoiskapiunofficial\.tech\/images\/posters\/(kp|kp_small|kp_big)\/(\d+)\.jpg/
-  const match = path.match(kpPattern)
-  
-  if (match) {
-    const type = match[1]
-    const id = match[2]
-    // Try API proxy first, with fallback to direct Kinopoisk
-    return `${API_URL}/api/v1/images/${type}/${id}?fallback=true`
+  const kpPattern = /kinopoiskapiunofficial\.tech\/images\/posters\/(kp|kp_small|kp_big)\/(\d+)\.jpg/i
+  const kpMatch = path.match(kpPattern)
+  if (kpMatch) {
+    const kind = kpMatch[1].toLowerCase()
+    const id = kpMatch[2]
+    return `${API_URL}/api/v1/images/${kind}/${id}`
   }
 
-  // Already proxied path
-  const proxyMatch = path.match(/^(?:https?:\/\/[^/]+)?\/?api\/v1\/images\/(kp|kp_small|kp_big)\/(\d+)$/)
-  if (proxyMatch) {
-    return `${API_URL}/api/v1/images/${proxyMatch[1]}/${proxyMatch[2]}?fallback=true`
+  if (path.includes('/api/v1/images/')) {
+    if (path.startsWith('http://') || path.startsWith('https://')) return path
+    return `${API_URL}${path}`
   }
-
-  // If it's a direct URL, try to use it (with CORS handling)
-  if (path.startsWith('http')) {
-    // Add cache buster to avoid stale images
-    return path.includes('?') ? `${path}&t=${Date.now()}` : `${path}?t=${Date.now()}`
-  }
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
 
   return '/images/placeholder.jpg'
 }

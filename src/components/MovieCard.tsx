@@ -19,6 +19,12 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
   const title = movie.title || movie.name || movie.nameRu || movie.nameOriginal || 'Unknown'
   const rating = (movie as any).rating || movie.vote_average || movie.ratingKinopoisk || 0
   const posterPath = movie.poster_path || movie.posterUrlPreview || movie.posterUrl
+  const getKpId = (): string => {
+    const src = movie.kinopoisk_id || movie.id
+    if (typeof src === 'number') return String(src)
+    if (typeof src === 'string') return src.replace(/^kp_/, '')
+    return ''
+  }
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -51,7 +57,8 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
 
     try {
       setIsUpdating(true)
-    const movieIdNum = typeof movie.id === 'string' ? Number(movie.id) : movie.id
+    const movieIdNum = getKpId()
+    if (!movieIdNum) return
     if (isFavorite) {
       await favoritesAPI.removeFromFavorites(movieIdNum, 'movie')
     } else {

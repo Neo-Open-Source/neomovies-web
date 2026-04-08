@@ -2,38 +2,46 @@ import { apiClient } from './client'
 
 export const playersAPI = {
   // Alloha плеер
-  getAllohaPlayer(idType: 'kp' | 'tmdb', id: string | number) {
-    return apiClient.get(`/api/v1/players/alloha/${idType}/${id}`, { timeout: 30000 })
+  getAllohaPlayer(idType: 'kp' | 'tmdb', id: string | number, season?: number, episode?: number) {
+    if (idType !== 'kp') throw new Error('Only kp idType is supported by current API')
+    return apiClient.get(`/api/v1/players/alloha/kp/${id}`, {
+      params: { season, episode },
+      timeout: 30000,
+    })
   },
 
   // Lumex плеер
-  getLumexPlayer(idType: 'kp' | 'tmdb', id: string | number) {
-    return apiClient.get(`/api/v1/players/lumex/${idType}/${id}`, { timeout: 30000 })
+  getLumexPlayer(idType: 'kp' | 'tmdb', id: string | number, season?: number, episode?: number) {
+    if (idType !== 'kp') throw new Error('Only kp idType is supported by current API')
+    return apiClient.get(`/api/v1/players/lumex/kp/${id}`, {
+      params: { season, episode },
+      timeout: 30000,
+    })
   },
 
   // HDVB плеер
-  getHDVBPlayer(idType: 'kp' | 'tmdb', id: string | number) {
-    return apiClient.get(`/api/v1/players/hdvb/${idType}/${id}`, { timeout: 30000 })
+  getHDVBPlayer(idType: 'kp' | 'tmdb', id: string | number, season?: number, episode?: number) {
+    if (idType !== 'kp') throw new Error('Only kp idType is supported by current API')
+    return apiClient.get(`/api/v1/players/hdvb/kp/${id}`, {
+      params: { season, episode },
+      timeout: 30000,
+    })
   },
 
-  // Торренты по IMDB ID
-  getTorrents(id: string | number, type: 'movie' | 'tv') {
-    const typeParam = type === 'tv' ? 'tv' : 'movie'
-    return apiClient.get(`/api/v1/torrents/search/${id}?type=${typeParam}`, { timeout: 30000 })
-  },
-
-  // Торренты по названию
-  getTorrentsByTitle(title: string, originalTitle: string, year: number, type: 'movie' | 'tv') {
-    const params = new URLSearchParams()
-    params.append('title', title)
-    if (originalTitle) params.append('originalTitle', originalTitle)
-    if (year) params.append('year', year.toString())
-    params.append('type', type)
-    return apiClient.get(`/api/v1/torrents/search/by-title?${params.toString()}`, { timeout: 30000 })
+  // Торренты по KP ID
+  getTorrents(kpId: string | number, season?: number, episode?: number) {
+    return apiClient.get('/api/v1/torrents/search', {
+      params: { kp_id: kpId, season, episode },
+      timeout: 30000,
+    })
   },
 
   // Collaps плеер
-  getCollapsPlayer(idType: 'kp' | 'tmdb', id: string | number) {
-    return apiClient.get(`/api/v1/players/collaps/${idType}/${id}`, { timeout: 30000 })
+  getCollapsPlayer(idType: 'kp' | 'tmdb', id: string | number, season?: number, episode?: number) {
+    if (idType !== 'kp') throw new Error('Only kp idType is supported by current API')
+    return apiClient.get(`/api/v1/players/collaps/kp/${id}`, {
+      params: { season, episode },
+      timeout: 30000,
+    })
   }
 }

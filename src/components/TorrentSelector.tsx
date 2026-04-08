@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Button,
   Dialog,
@@ -23,10 +23,9 @@ import { BsMagnetFill } from 'react-icons/bs'
 import { playersAPI } from '../api'
 
 interface TorrentSelectorProps {
-  imdbId?: string
+  kpId?: string | number
   type: 'movie' | 'tv'
   title?: string
-  originalTitle?: string
 }
 
 interface Torrent {
@@ -39,7 +38,7 @@ interface Torrent {
   season?: number
 }
 
-export const TorrentSelector = ({ imdbId, type, title, originalTitle }: TorrentSelectorProps) => {
+export const TorrentSelector = ({ kpId, type, title }: TorrentSelectorProps) => {
   const [open, setOpen] = useState(false)
   const [torrents, setTorrents] = useState<Torrent[]>([])
   const [loading, setLoading] = useState(false)
@@ -47,52 +46,25 @@ export const TorrentSelector = ({ imdbId, type, title, originalTitle }: TorrentS
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
   const [seasons, setSeasons] = useState<number[]>([])
   const [, setCopied] = useState<string | null>(null)
-  const [forceByTitle, setForceByTitle] = useState(false)
   const [selectedQualities, setSelectedQualities] = useState<string[]>([])
 
   const fetchTorrents = async () => {
     setLoading(true)
     setError(null)
     try {
-      let response
-      let data: any[] = []
-      
-      // Стратегия поиска: IMDB ID (приоритет) -> originalTitle -> title
-      
-      // 1. Пытаемся по IMDB ID
-      if (!forceByTitle && imdbId) {
-        try {
-          response = await playersAPI.getTorrents(imdbId, type)
-          data = Array.isArray(response.data) ? response.data : response.data?.results || response.data?.data || []
-        } catch (err) {
-          data = []
-        }
+      if (!kpId) {
+        setError('KP ID не найден для этого контента.')
+        setLoading(false)
+        return
       }
-
-      // 2. Если по IMDB ID не нашли или forceByTitle - ищем по названию (originalTitle приоритет)
-      if (data.length === 0 && (originalTitle || title)) {
-        const searchTitle = (originalTitle || title) as string
-        try {
-          response = await playersAPI.getTorrentsByTitle(searchTitle, searchTitle, 0, type)
-          data = Array.isArray(response.data) ? response.data : response.data?.results || response.data?.data || []
-        } catch (err) {
-          data = []
-        }
-      }
-
-      // 3. Если ничего не нашли - ищем через обычный поиск по названию
-      if (data.length === 0 && (originalTitle || title)) {
-        const searchTitle = (originalTitle || title) as string
-        try {
-          response = await playersAPI.getTorrentsByTitle(searchTitle, '', 0, type)
-          data = Array.isArray(response.data) ? response.data : response.data?.results || response.data?.data || []
-        } catch (err) {
-          data = []
-        }
-      }
+      const numericKpId = String(kpId).replace(/^kp_/, '')
+      const response = await playersAPI.getTorrents(numericKpId)
+      const data: any[] = Array.isArray(response.data)
+        ? response.data
+        : response.data?.results || response.data?.data || []
 
       if (data.length === 0) {
-        setError('Торренты не найдены. Попробуйте позже или используйте другой поисковик.')
+        setError('Торренты не найдены.')
         setLoading(false)
         return
       }
@@ -122,13 +94,6 @@ export const TorrentSelector = ({ imdbId, type, title, originalTitle }: TorrentS
     }
   }
 
-  // Переполучаем торренты когда forceByTitle меняется
-  useEffect(() => {
-    if (forceByTitle && open && torrents.length === 0) {
-      fetchTorrents()
-    }
-  }, [forceByTitle, open])
-
   const handleCopyMagnet = (magnet: string) => {
     navigator.clipboard.writeText(magnet)
     setCopied(magnet)
@@ -136,26 +101,39 @@ export const TorrentSelector = ({ imdbId, type, title, originalTitle }: TorrentS
   }
 
   // Получаем уникальные качества из торрентов
+  const toQualityString = (q: unknown): string => String(q ?? '').trim()
+
   const availableQualities = Array.from(
-    new Set(torrents.map((t) => t.quality).filter(Boolean) as string[])
+    new Set(torrents.map((t) => toQualityString(t.quality)).filter(Boolean))
   ).sort((a: string, b: string) => {
-    // Сортируем по качеству: 4K, 1080p, 720p, 480p и т.д.
+    const norm = (q: unknown) => String(q ?? '').trim().toLowerCase().replace(/\s+/g, '')
+    // Приоритет: 4K -> 2K -> 1080p -> 720p -> 480p -> остальное
     const qualityOrder: Record<string, number> = {
-      '4K': 0,
+      '4k': 0,
+      '2160': 0,
       '2160p': 0,
+      '2k': 1,
+      '1440': 1,
       '1440p': 1,
+      '1080': 2,
       '1080p': 2,
+      '720': 3,
       '720p': 3,
+      '480': 4,
       '480p': 4,
+      '360': 5,
       '360p': 5,
     }
-    return (qualityOrder[a] ?? 999) - (qualityOrder[b] ?? 999)
+    const aKey = norm(a)
+    const bKey = norm(b)
+    return (qualityOrder[aKey] ?? 999) - (qualityOrder[bKey] ?? 999)
   })
 
   // Фильтруем торренты по сезону и качеству
   const filteredTorrents = torrents.filter((t) => {
     const seasonMatch = !selectedSeason || t.season === selectedSeason
-    const qualityMatch = selectedQualities.length === 0 || selectedQualities.includes(t.quality || '')
+    const qualityMatch =
+      selectedQualities.length === 0 || selectedQualities.includes(toQualityString(t.quality))
     return seasonMatch && qualityMatch
   })
 
@@ -273,19 +251,6 @@ export const TorrentSelector = ({ imdbId, type, title, originalTitle }: TorrentS
           )}
         </DialogContent>
         <DialogActions>
-          {/* Показываем кнопку "Показать все результаты" если есть ID и название */}
-          {!forceByTitle && imdbId && title && (
-            <Button
-              variant="contained"
-              onClick={() => {
-                setForceByTitle(true)
-                setTorrents([])
-                setError(null)
-              }}
-            >
-              Показать все результаты
-            </Button>
-          )}
           <Button onClick={() => setOpen(false)}>Закрыть</Button>
         </DialogActions>
       </Dialog>
