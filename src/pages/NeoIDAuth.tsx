@@ -1,17 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { Box, Button, Chip, CircularProgress, Paper, Stack, Typography } from '@mui/material'
 import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded'
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded'
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import { apiClient, setAuthTokens } from '../api/client'
 
 const NEO_ID_URL = (import.meta.env.VITE_NEO_ID_URL || 'https://id.neomovies.ru').replace(/\/$/, '')
@@ -209,6 +201,22 @@ export const NeoIDAuth = () => {
         }}
       >
         <Stack spacing={2.2}>
+          <Button
+            variant="text"
+            size="small"
+            startIcon={<ArrowBackRoundedIcon />}
+            onClick={() => navigate('/')}
+            sx={{
+              width: 'fit-content',
+              color: '#cbd5e1',
+              textTransform: 'none',
+              px: 0.25,
+              minWidth: 'auto',
+            }}
+          >
+            Назад
+          </Button>
+
           <Chip
             icon={<SecurityRoundedIcon />}
             label="Secure Neo ID"
@@ -223,10 +231,7 @@ export const NeoIDAuth = () => {
           />
 
           <Typography variant="h4" sx={{ color: '#f8fafc', fontWeight: 800, lineHeight: 1.1 }}>
-            Sign in to{' '}
-            <Box component="span" sx={{ color: '#ef4444' }}>
-              NeoMovies
-            </Box>
+            Sign in to NeoMovies
           </Typography>
 
           <Typography variant="body2" sx={{ color: '#94a3b8' }}>
@@ -234,15 +239,25 @@ export const NeoIDAuth = () => {
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
+            <Box
+              sx={{
+                borderRadius: 2,
+                px: 1.5,
+                py: 1.1,
+                fontSize: '0.88rem',
+                color: '#e2e8f0',
+                border: '1px solid rgba(148,163,184,0.35)',
+                bgcolor: 'rgba(15,23,42,0.4)',
+              }}
+            >
               {error}
-            </Alert>
+            </Box>
           )}
 
           {status === 'waiting' ? (
             <Stack spacing={1.5} alignItems="flex-start">
               <Stack direction="row" spacing={1.2} alignItems="center">
-                <CircularProgress size={22} sx={{ color: '#ef4444' }} />
+                <CircularProgress size={22} sx={{ color: '#e2e8f0' }} />
                 <Typography sx={{ color: '#e2e8f0', fontSize: '0.95rem' }}>
                   Complete sign in in the popup window
                 </Typography>
@@ -270,8 +285,9 @@ export const NeoIDAuth = () => {
                 textTransform: 'none',
                 fontSize: '0.98rem',
                 fontWeight: 700,
-                bgcolor: '#dc2626',
-                '&:hover': { bgcolor: '#b91c1c' },
+                color: '#0b0f17',
+                bgcolor: '#e5e7eb',
+                '&:hover': { bgcolor: '#d1d5db' },
               }}
             >
               {status === 'opening' ? <CircularProgress size={22} sx={{ color: '#fff' }} /> : 'Continue with Neo ID'}
