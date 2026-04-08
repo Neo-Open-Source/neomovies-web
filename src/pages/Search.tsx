@@ -65,8 +65,7 @@ export const Search = () => {
 
   const handleResultClick = (item: Movie) => {
     const id = item.kinopoisk_id ? `kp_${item.kinopoisk_id}` : item.id
-    const isTv = item.type === 'tv' || item.media_type === 'tv'
-    navigate(`/${isTv ? 'tv' : 'movie'}/${id}`)
+    navigate(`/${id}`)
   }
 
   return (

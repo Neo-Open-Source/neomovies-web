@@ -17,13 +17,16 @@ function storeTokens(token: string, refreshToken: string, user: any) {
 
 async function exchangeNeoToken(neoToken: string, neoRefresh: string): Promise<void> {
   const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/callback`, {
-    token: neoToken,
+    access_token: neoToken,
     refresh_token: neoRefresh || '',
   })
   const data = resp.data?.data || resp.data
   if (data.neoAccess) localStorage.setItem('neo_id_access_token', data.neoAccess)
   if (data.neoRefresh) localStorage.setItem('neo_id_refresh_token', data.neoRefresh)
-  storeTokens(data.token, data.refreshToken, data.user)
+  const accessToken = data.accessToken || data.token
+  const refreshToken = data.refreshToken || data.refresh_token
+  if (!accessToken || !refreshToken) throw new Error('Invalid token payload from API')
+  storeTokens(accessToken, refreshToken, data.user)
 }
 
 export const NeoIDAuth = () => {
@@ -76,19 +79,30 @@ export const NeoIDAuth = () => {
   // Handle token in URL hash (redirect flow)
   useEffect(() => {
     const hash = window.location.hash
-    if (!hash) return
-    const params = new URLSearchParams(hash.slice(1))
-    const token = params.get('access_token') || params.get('token')
-    const refresh = params.get('refresh_token') || ''
-    if (token) {
-      window.history.replaceState({}, '', window.location.pathname)
-      exchangeNeoToken(token, refresh)
-        .then(() => navigate('/', { replace: true }))
-        .catch((err: any) => {
-          setError(err?.response?.data?.error || err?.message || 'Failed to complete Neo ID sign in')
-          setStatus('error')
-        })
-    }
+    const search = window.location.search
+
+    const fromHash = hash ? new URLSearchParams(hash.slice(1)) : null
+    const fromQuery = search ? new URLSearchParams(search) : null
+
+    const token =
+      fromHash?.get('access_token') ||
+      fromHash?.get('token') ||
+      fromQuery?.get('access_token') ||
+      fromQuery?.get('token')
+    const refresh =
+      fromHash?.get('refresh_token') ||
+      fromQuery?.get('refresh_token') ||
+      ''
+
+    if (!token) return
+
+    window.history.replaceState({}, '', window.location.pathname)
+    exchangeNeoToken(token, refresh)
+      .then(() => navigate('/', { replace: true }))
+      .catch((err: any) => {
+        setError(err?.response?.data?.error || err?.message || 'Failed to complete Neo ID sign in')
+        setStatus('error')
+      })
   }, [navigate])
 
   useEffect(() => {
@@ -108,7 +122,7 @@ export const NeoIDAuth = () => {
       const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/login`, {
         redirect_url: callbackURL,
         state,
-        popup: true,
+        mode: 'popup',
       })
       const data = resp.data?.data || resp.data
       const rawURL: string = data.login_url || ''

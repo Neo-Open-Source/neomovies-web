@@ -234,6 +234,18 @@ export const getImageUrl = (path: string | null | undefined): string => {
     if (path.startsWith('http://') || path.startsWith('https://')) return path
     return `${API_URL}${path}`
   }
+
+  if (path.startsWith('/images/')) {
+    const parts = path.split('/').filter(Boolean) // ["images", "kp_small", "123.jpg"]
+    const kind = parts[1] || ''
+    const rawId = parts.slice(2).join('/')
+    const id = rawId.replace(/\.jpg$/i, '')
+    if (kind && id) {
+      return `${API_URL}/api/v1/images/${kind}/${id}`
+    }
+    return `${API_URL}/api/v1${path}`
+  }
+
   if (path.startsWith('http://') || path.startsWith('https://')) return path
 
   return '/images/placeholder.jpg'

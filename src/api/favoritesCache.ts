@@ -9,7 +9,8 @@ export interface FavoriteItem {
   title: string
   nameRu: string
   nameEn: string
-  posterPath: string
+  posterPath?: string
+  posterUrl?: string
   year: number
   rating: number
   createdAt: string

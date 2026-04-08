@@ -5,8 +5,8 @@ import { favoritesCache, type FavoriteItem } from '../api'
 interface FavoritesContextType {
   favorites: FavoriteItem[]
   isFavorite: (mediaId: number | string, mediaType: 'movie' | 'tv') => boolean
-  addToFavorites: (mediaId: number, mediaType: 'movie' | 'tv', mediaInfo?: Partial<FavoriteItem>) => Promise<void>
-  removeFromFavorites: (mediaId: number, mediaType: 'movie' | 'tv') => Promise<void>
+  addToFavorites: (mediaId: number | string, mediaType: 'movie' | 'tv', mediaInfo?: Partial<FavoriteItem>) => Promise<void>
+  removeFromFavorites: (mediaId: number | string, mediaType: 'movie' | 'tv') => Promise<void>
   isLoading: boolean
   error: Error | null
   refetch: () => Promise<void>

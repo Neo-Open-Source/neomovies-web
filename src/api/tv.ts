@@ -25,7 +25,7 @@ export const tvAPI = {
 
   // Получение сериалов с высоким рейтингом
   async getTopRated(page = 1) {
-    const res = await apiClient.get('/api/v1/movies/top-rated', {
+    const res = await apiClient.get('/api/v1/tv/top-rated', {
       params: { page },
       timeout: 30000
     })

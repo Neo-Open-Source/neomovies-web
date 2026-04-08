@@ -41,7 +41,8 @@ export const Movies = () => {
   }, [page, sortBy])
 
   const handleMovieClick = (movie: Movie) => {
-    navigate(`/movie/${movie.id}`)
+    const id = movie.kinopoisk_id ? `kp_${movie.kinopoisk_id}` : movie.id
+    navigate(`/${id}`)
   }
 
   const handleSortChange = (newSort: 'popular' | 'top-rated') => {
