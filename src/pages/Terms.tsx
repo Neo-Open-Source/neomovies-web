@@ -43,7 +43,7 @@ export const Terms = () => {
       selectLanguage: 'Выберите язык',
       accept: 'Принимаю условия',
       decline: 'Отклонить',
-      footer: '© 2025 NeoMovies. Все права защищены.',
+      footer: '© 2026 Neo-Open-Source. Все права защищены.',
       sections: [
         {
           title: '1. Общие положения',
@@ -83,7 +83,7 @@ export const Terms = () => {
       selectLanguage: 'Select Language',
       accept: 'Accept Terms',
       decline: 'Decline',
-      footer: '© 2025 NeoMovies. All rights reserved.',
+      footer: '© 2026 Neo-Open-Source. All rights reserved.',
       sections: [
         {
           title: '1. General Provisions',
