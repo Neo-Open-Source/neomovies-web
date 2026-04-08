@@ -7,12 +7,12 @@ export const favoritesAPI = {
   },
 
   // Add to favorites (с оптимистичным обновлением)
-  addToFavorites: async (movieId: number, mediaType: string = 'movie', mediaInfo?: any) => {
+  addToFavorites: async (movieId: number | string, mediaType: string = 'movie', mediaInfo?: any) => {
     return favoritesCache.addToFavorites(movieId, mediaType as 'movie' | 'tv', mediaInfo)
   },
 
   // Remove from favorites (с оптимистичным обновлением)
-  removeFromFavorites: async (movieId: number, mediaType: string = 'movie') => {
+  removeFromFavorites: async (movieId: number | string, mediaType: string = 'movie') => {
     return favoritesCache.removeFromFavorites(movieId, mediaType as 'movie' | 'tv')
   },
 

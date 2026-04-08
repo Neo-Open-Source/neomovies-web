@@ -5,6 +5,8 @@ import {
   Box,
   CircularProgress,
   Pagination,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import { tvAPI } from '../api'
 import { MovieCard } from '../components/MovieCard'
@@ -12,6 +14,8 @@ import { filterValidMovies } from '../utils/filterMovies'
 import type { Movie } from '../types'
 
 export const TVTop = () => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [shows, setShows] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -37,7 +41,7 @@ export const TVTop = () => {
 
   const handleShowClick = (show: Movie) => {
     const id = show.kinopoisk_id ? `kp_${show.kinopoisk_id}` : show.id
-    navigate(`/tv/${id}`)
+    navigate(`/${id}`)
   }
 
   return (
@@ -78,6 +82,10 @@ export const TVTop = () => {
               page={page}
               onChange={(_, value) => setPage(value)}
               color="primary"
+              size={isMobile ? 'small' : 'medium'}
+              siblingCount={isMobile ? 0 : 1}
+              boundaryCount={isMobile ? 1 : 2}
+              sx={{ '& .MuiPagination-ul': { flexWrap: 'nowrap' } }}
             />
           </Box>
         </>

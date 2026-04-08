@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, CardMedia, CardContent, Typography, Box, Rating, Skeleton, IconButton } from '@mui/material'
+import { Card, CardMedia, Typography, Box, Rating, Skeleton, IconButton, useTheme } from '@mui/material'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import { getImageUrl, favoritesAPI } from '../api'
@@ -12,6 +12,8 @@ interface MovieCardProps {
 }
 
 export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieCardProps) => {
+  const theme = useTheme()
+  const dark = theme.palette.mode === 'dark'
   const [imageLoaded, setImageLoaded] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -19,6 +21,12 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
   const title = movie.title || movie.name || movie.nameRu || movie.nameOriginal || 'Unknown'
   const rating = (movie as any).rating || movie.vote_average || movie.ratingKinopoisk || 0
   const posterPath = movie.poster_path || movie.posterUrlPreview || movie.posterUrl
+  const getKpId = (): string => {
+    const src = movie.kinopoisk_id || movie.id
+    if (typeof src === 'number') return String(src)
+    if (typeof src === 'string') return src.replace(/^kp_/, '')
+    return ''
+  }
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -51,7 +59,8 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
 
     try {
       setIsUpdating(true)
-    const movieIdNum = typeof movie.id === 'string' ? Number(movie.id) : movie.id
+    const movieIdNum = getKpId()
+    if (!movieIdNum) return
     if (isFavorite) {
       await favoritesAPI.removeFromFavorites(movieIdNum, 'movie')
     } else {
@@ -83,18 +92,23 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'transform 0.2s, box-shadow 0.2s',
+        transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
         position: 'relative',
         zIndex: 0,
         overflow: 'hidden',
+        borderRadius: 2.5,
+        border: `1px solid ${dark ? '#2a2d33' : '#d9dde5'}`,
+        backgroundColor: dark ? '#14161a' : '#ffffff',
+        boxShadow: dark ? '0 10px 24px rgba(0,0,0,0.32)' : '0 8px 18px rgba(15,23,42,0.08)',
         '&:hover': {
-          transform: 'translateY(-8px)',
-          boxShadow: 6,
+          transform: 'translateY(-6px)',
+          boxShadow: dark ? '0 14px 30px rgba(0,0,0,0.42)' : '0 12px 28px rgba(15,23,42,0.14)',
+          borderColor: dark ? '#3c414a' : '#c9cfdb',
           zIndex: 1,
         },
       }}
     >
-      <Box sx={{ position: 'relative', height: 300, width: '100%', overflow: 'hidden', backgroundColor: '#1a1a1a' }}>
+      <Box sx={{ position: 'relative', height: 410, width: '100%', overflow: 'hidden', backgroundColor: dark ? '#1b1e24' : '#eef0f5' }}>
         {!imageLoaded && (
           <Skeleton
             variant="rectangular"
@@ -105,7 +119,7 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
         )}
         <CardMedia
           component="img"
-          height="300"
+          height="410"
           image={getImageUrl(posterPath)}
           alt={title}
           loading="lazy"
@@ -119,6 +133,47 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
             transition: 'opacity 0.3s ease-in-out',
           }}
         />
+
+        <Box
+          sx={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            p: 1.4,
+            background: 'linear-gradient(180deg, rgba(5,8,14,0.0) 0%, rgba(5,8,14,0.72) 50%, rgba(5,8,14,0.92) 100%)',
+          }}
+        >
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontSize: '1.05rem',
+              lineHeight: 1.2,
+              color: '#f8fafc',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              minHeight: '2.4em',
+              mb: 0.7,
+            }}
+          >
+            {title}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Rating value={rating / 2} readOnly size="small" />
+            <Typography variant="body2" sx={{ color: '#e5e7eb', fontWeight: 600 }}>
+              {rating.toFixed(1)}
+            </Typography>
+            {(movie.release_date || movie.first_air_date) && (
+              <Typography variant="caption" sx={{ color: '#9ca3af', ml: 0.4 }}>
+                {new Date(movie.release_date || movie.first_air_date || '').getFullYear()}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
         {!hideFavoriteButton && (
           <IconButton
             onClick={handleFavoriteClick}
@@ -127,10 +182,12 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
               position: 'absolute',
               top: 8,
               right: 8,
-              backgroundColor: 'rgba(0, 0, 0, 0.6)',
-              color: isFavorite ? '#ff0000' : '#fff',
+              backgroundColor: dark ? 'rgba(11,12,15,0.62)' : 'rgba(255,255,255,0.74)',
+              color: isFavorite ? '#ef4444' : dark ? '#f3f4f6' : '#111827',
+              border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(17,24,39,0.12)'}`,
+              backdropFilter: 'blur(4px)',
               '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                backgroundColor: dark ? 'rgba(11,12,15,0.78)' : 'rgba(255,255,255,0.9)',
               },
               '&:disabled': {
                 opacity: 0.6,
@@ -141,22 +198,6 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
           </IconButton>
         )}
       </Box>
-      <CardContent sx={{ flexGrow: 1, minWidth: 0 }}>
-        <Typography gutterBottom variant="h6" component="div" noWrap sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {title}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Rating value={rating / 2} readOnly size="small" />
-          <Typography variant="body2" color="text.secondary">
-            {rating.toFixed(1)}
-          </Typography>
-        </Box>
-        {(movie.release_date || movie.first_air_date) && (
-          <Typography variant="caption" color="text.secondary">
-            {new Date(movie.release_date || movie.first_air_date || '').getFullYear()}
-          </Typography>
-        )}
-      </CardContent>
     </Card>
   )
 }

@@ -15,7 +15,7 @@ import type { Movie } from '../types'
 export const Favorites = () => {
   const navigate = useNavigate()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const { favorites, isLoading, error, removeFromFavorites } = useFavoritesContext()
+  const { favorites, isLoading, error, removeFromFavorites, refetch } = useFavoritesContext()
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -33,14 +33,20 @@ export const Favorites = () => {
     return () => window.removeEventListener('auth-changed', handleAuthChange)
   }, [])
 
+  useEffect(() => {
+    if (isLoggedIn) {
+      void refetch()
+    }
+  }, [isLoggedIn, refetch])
+
   const handleMovieClick = (movie: Movie) => {
     const id = movie.kinopoisk_id ? `kp_${movie.kinopoisk_id}` : movie.id
-    navigate(`/movie/${id}`)
+    navigate(`/${id}`)
   }
 
   const handleRemoveFavorite = async (mediaId: string) => {
     try {
-      await removeFromFavorites(Number(mediaId), 'movie')
+      await removeFromFavorites(mediaId, 'movie')
     } catch (error) {
       console.error('Error removing favorite:', error)
       alert('Ошибка при удалении из избранного')
@@ -123,16 +129,20 @@ export const Favorites = () => {
           }}
         >
             {favorites.map((favorite) => {
+              const rawId = String(favorite.mediaId || '')
+              const kpNumericId = Number(rawId.replace(/^kp_/, ''))
+
               // Преобразуем FavoriteItem в Movie для совместимости с MovieCard
               const movie: Movie = {
-                id: Number(favorite.mediaId),
+                id: rawId || favorite.id,
+                kinopoisk_id: Number.isFinite(kpNumericId) ? kpNumericId : undefined,
                 title: favorite.title,
                 name: favorite.title,
                 nameRu: favorite.nameRu,
                 nameEn: favorite.nameEn,
-                poster_path: favorite.posterPath,
-                posterUrl: favorite.posterPath,
-                posterUrlPreview: favorite.posterPath,
+                poster_path: favorite.posterPath || favorite.posterUrl,
+                posterUrl: favorite.posterUrl || favorite.posterPath,
+                posterUrlPreview: favorite.posterUrl || favorite.posterPath,
                 release_date: `${favorite.year}-01-01`,
                 first_air_date: `${favorite.year}-01-01`,
                 vote_average: favorite.rating,

@@ -9,7 +9,8 @@ export interface FavoriteItem {
   title: string
   nameRu: string
   nameEn: string
-  posterPath: string
+  posterPath?: string
+  posterUrl?: string
   year: number
   rating: number
   createdAt: string
@@ -30,6 +31,16 @@ class FavoritesCache {
   private syncTimer: TimeoutId | null = null
   private lastSyncHash: string = ''
   private listeners: Set<(favorites: FavoriteItem[]) => void> = new Set()
+
+  private normalizeRouteId(mediaId: number | string): string {
+    const raw = String(mediaId).trim()
+    return raw.replace(/^kp_/, '')
+  }
+
+  private canonicalMediaId(mediaId: number | string): string {
+    const routeId = this.normalizeRouteId(mediaId)
+    return routeId ? `kp_${routeId}` : ''
+  }
 
   /**
    * Инициализирует кеш и запускает синхронизацию
@@ -175,8 +186,9 @@ class FavoritesCache {
    */
   isFavorite(mediaId: number | string, mediaType: 'movie' | 'tv'): boolean {
     if (!this.cache) return false
+    const target = this.canonicalMediaId(mediaId)
     return this.cache.favorites.some(
-      f => f.mediaId === String(mediaId) && f.mediaType === mediaType
+      f => this.canonicalMediaId(f.mediaId) === target && f.mediaType === mediaType
     )
   }
 
@@ -194,15 +206,19 @@ class FavoritesCache {
    * Добавляет элемент в избранное (оптимистичное обновление)
    */
   async addToFavorites(
-    mediaId: number,
+    mediaId: number | string,
     mediaType: 'movie' | 'tv',
     mediaInfo?: Partial<FavoriteItem>
   ): Promise<void> {
+    const routeId = this.normalizeRouteId(mediaId)
+    const mediaIdCanonical = this.canonicalMediaId(mediaId)
+    if (!routeId || !mediaIdCanonical) return
+
     // Оптимистичное обновление кеша
     if (this.cache && mediaInfo) {
       const newFavorite: FavoriteItem = {
-        id: `${mediaId}:${mediaType}`,
-        mediaId: String(mediaId),
+        id: `${mediaIdCanonical}:${mediaType}`,
+        mediaId: mediaIdCanonical,
         mediaType,
         title: mediaInfo.title || '',
         nameRu: mediaInfo.nameRu || '',
@@ -213,7 +229,7 @@ class FavoritesCache {
         createdAt: new Date().toISOString(),
       }
 
-      if (!this.cache.favorites.some(f => f.mediaId === String(mediaId) && f.mediaType === mediaType)) {
+      if (!this.cache.favorites.some(f => this.canonicalMediaId(f.mediaId) === mediaIdCanonical && f.mediaType === mediaType)) {
         this.cache.favorites.push(newFavorite)
         this.saveToStorage()
         this.notifyListeners(this.cache.favorites)
@@ -222,14 +238,14 @@ class FavoritesCache {
 
     // Отправляем на сервер
     try {
-      await apiClient.post(`/api/v1/favorites/${mediaId}`, {}, { params: { type: mediaType } })
+      await apiClient.post(`/api/v1/favorites/${routeId}`, {}, { params: { type: mediaType } })
       // После успеха синхронизируем
       await this.syncIfNeeded()
     } catch (error) {
       // Откатываем оптимистичное обновление
       if (this.cache && mediaInfo) {
         this.cache.favorites = this.cache.favorites.filter(
-          f => !(f.mediaId === String(mediaId) && f.mediaType === mediaType)
+          f => !(this.canonicalMediaId(f.mediaId) === mediaIdCanonical && f.mediaType === mediaType)
         )
         this.saveToStorage()
         this.notifyListeners(this.cache.favorites)
@@ -242,17 +258,21 @@ class FavoritesCache {
    * Удаляет элемент из избранного (оптимистичное обновление)
    */
   async removeFromFavorites(
-    mediaId: number,
+    mediaId: number | string,
     mediaType: 'movie' | 'tv'
   ): Promise<void> {
+    const routeId = this.normalizeRouteId(mediaId)
+    const mediaIdCanonical = this.canonicalMediaId(mediaId)
+    if (!routeId || !mediaIdCanonical) return
+
     // Оптимистичное обновление кеша
     const hadItem = this.cache?.favorites.some(
-      f => f.mediaId === String(mediaId) && f.mediaType === mediaType
+      f => this.canonicalMediaId(f.mediaId) === mediaIdCanonical && f.mediaType === mediaType
     )
 
     if (this.cache && hadItem) {
       this.cache.favorites = this.cache.favorites.filter(
-        f => !(f.mediaId === String(mediaId) && f.mediaType === mediaType)
+        f => !(this.canonicalMediaId(f.mediaId) === mediaIdCanonical && f.mediaType === mediaType)
       )
       this.saveToStorage()
       this.notifyListeners(this.cache.favorites)
@@ -260,7 +280,7 @@ class FavoritesCache {
 
     // Отправляем на сервер
     try {
-      await apiClient.delete(`/api/v1/favorites/${mediaId}`, { params: { type: mediaType } })
+      await apiClient.delete(`/api/v1/favorites/${routeId}`, { params: { type: mediaType } })
       // После успеха синхронизируем
       await this.syncIfNeeded()
     } catch (error) {

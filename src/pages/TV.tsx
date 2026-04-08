@@ -45,7 +45,8 @@ export const TV = () => {
   }, [page, sortBy])
 
   const handleShowClick = (show: Movie) => {
-    navigate(`/tv/${show.id}`)
+    const id = show.kinopoisk_id ? `kp_${show.kinopoisk_id}` : show.id
+    navigate(`/${id}`)
   }
 
   const handleSortChange = (newSort: 'popular' | 'top-rated' | 'on-the-air') => {

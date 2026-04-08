@@ -17,20 +17,8 @@ export const filterValidMovies = (movies: Movie[]): Movie[] => {
       movie.nameOriginal
     )
 
-    // Check if has year
-    const hasYear = !!(
-      movie.release_date ||
-      movie.first_air_date ||
-      movie.year
-    )
-
-    // Check if has rating
-    const hasRating = !!(
-      movie.vote_average ||
-      movie.ratingKinopoisk
-    )
-
-    // Return true only if all conditions are met
-    return hasPoster && hasTitle && hasYear && hasRating
+    // Year/rating in v2 API can be absent or equal to 0, so we do not
+    // hard-filter by them; otherwise full pages become empty.
+    return hasPoster && hasTitle
   })
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type UIEvent } from 'react'
 import {
   AppBar,
   Toolbar,
@@ -10,19 +10,25 @@ import {
   Stack,
   Menu,
   MenuItem,
+  Divider,
   Paper,
   CircularProgress,
   IconButton,
   Alert,
   useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import PersonIcon from '@mui/icons-material/Person'
 import CloseIcon from '@mui/icons-material/Close'
-import { useNavigate } from 'react-router-dom'
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined'
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { getImageUrl, moviesAPI } from '../api'
+import { apiClient } from '../api/client'
 import { clearAuthState } from '../api/client'
 import { filterValidMovies } from '../utils/filterMovies'
+import { useThemeMode } from '../contexts/ThemeModeContext'
 import type { Movie } from '../types'
 
 interface LayoutProps {
@@ -30,6 +36,20 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
+  const theme = useTheme()
+  const dark = theme.palette.mode === 'dark'
+  const { toggleMode } = useThemeMode()
+
+  const colors = {
+    header: dark ? '#111216' : '#ffffff',
+    bg: dark ? '#0b0b0d' : '#f4f5f7',
+    surface: dark ? '#17181c' : '#ffffff',
+    border: dark ? '#26282d' : '#e5e7eb',
+    text: dark ? '#f5f6f7' : '#111827',
+    muted: dark ? '#9ca3af' : '#6b7280',
+    hover: dark ? '#21232a' : '#f3f4f6',
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
   const [userName, setUserName] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -37,10 +57,33 @@ export const Layout = ({ children }: LayoutProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [searchResults, setSearchResults] = useState<Movie[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [searchLoadingMore, setSearchLoadingMore] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
+  const [searchPage, setSearchPage] = useState(1)
+  const [searchTotalPages, setSearchTotalPages] = useState(1)
   const searchRequestIdRef = useRef(0)
   const searchCommittedRef = useRef(false)
+  const searchBoxRef = useRef<HTMLFormElement | null>(null)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const navItems = [
+    { label: 'Популярное', path: '/' },
+    { label: 'Топ Фильмов', path: '/movies-top' },
+    { label: 'Топ Сериалов', path: '/tv-top' },
+    { label: 'Избранное', path: '/favorites' },
+  ]
+
+  const handleNavClick = (path: string) => {
+    if (path === '/favorites') {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        navigate('/auth')
+        return
+      }
+    }
+    navigate(path)
+  }
 
   const isMobile = useMediaQuery('(max-width:600px)')
   const [mobileAppBannerDismissed, setMobileAppBannerDismissed] = useState(true)
@@ -55,6 +98,29 @@ export const Layout = ({ children }: LayoutProps) => {
   }, [])
 
   useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!showSearchResults) return
+      const target = event.target as Node | null
+      if (searchBoxRef.current && target && !searchBoxRef.current.contains(target)) {
+        setShowSearchResults(false)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowSearchResults(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [showSearchResults])
+
+  useEffect(() => {
     // Check if user is logged in
     const token = localStorage.getItem('token')
     const email = localStorage.getItem('userEmail')
@@ -65,6 +131,26 @@ export const Layout = ({ children }: LayoutProps) => {
       setUserEmail(email)
       setUserName(name || email.split('@')[0])
       setUserAvatar(avatar || '')
+    } else if (token) {
+      void apiClient.get('/api/v1/auth/profile')
+        .then((resp: any) => {
+          const user = resp.data
+          if (user?.email) {
+            localStorage.setItem('userEmail', user.email)
+            setUserEmail(user.email)
+          }
+          if (user?.name) {
+            localStorage.setItem('userName', user.name)
+            setUserName(user.name)
+          } else if (user?.email) {
+            setUserName(user.email.split('@')[0])
+          }
+          if (user?.avatar) {
+            localStorage.setItem('userAvatar', user.avatar)
+            setUserAvatar(user.avatar)
+          }
+        })
+        .catch(() => {})
     }
 
     // Listen for auth changes
@@ -89,6 +175,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
     if (value.length >= 3) {
       setSearchLoading(true)
+      setSearchLoadingMore(false)
       const requestId = ++searchRequestIdRef.current
       try {
         const res = await moviesAPI.searchMovies(value, 1)
@@ -96,8 +183,10 @@ export const Layout = ({ children }: LayoutProps) => {
           return
         }
         const allResults = res.data.results || []
-        const validMovies = filterValidMovies(allResults).slice(0, 5)
+        const validMovies = filterValidMovies(allResults)
         setSearchResults(validMovies)
+        setSearchPage(res.data.page || 1)
+        setSearchTotalPages(res.data.total_pages || 1)
         setShowSearchResults(true)
       } catch (error) {
         console.error('Search error:', error)
@@ -105,6 +194,8 @@ export const Layout = ({ children }: LayoutProps) => {
           return
         }
         setSearchResults([])
+        setSearchPage(1)
+        setSearchTotalPages(1)
       } finally {
         if (requestId === searchRequestIdRef.current && !searchCommittedRef.current) {
           setSearchLoading(false)
@@ -113,6 +204,65 @@ export const Layout = ({ children }: LayoutProps) => {
     } else {
       setShowSearchResults(false)
       setSearchResults([])
+      setSearchPage(1)
+      setSearchTotalPages(1)
+      setSearchLoadingMore(false)
+    }
+  }
+
+  const loadMoreSearchResults = async () => {
+    if (searchLoading || searchLoadingMore) return
+    if (!showSearchResults) return
+    if (searchQuery.trim().length < 3) return
+    if (searchPage >= searchTotalPages) return
+
+    const nextPage = searchPage + 1
+    const requestId = searchRequestIdRef.current
+    setSearchLoadingMore(true)
+    try {
+      const res = await moviesAPI.searchMovies(searchQuery.trim(), nextPage)
+      if (requestId !== searchRequestIdRef.current || searchCommittedRef.current) {
+        return
+      }
+      const nextValid = filterValidMovies(res.data.results || [])
+      setSearchResults((prev) => {
+        const seen = new Set(prev.map((m) => String((m as any).id)))
+        const merged = [...prev]
+        for (const item of nextValid) {
+          const key = String((item as any).id)
+          if (!seen.has(key)) {
+            seen.add(key)
+            merged.push(item)
+          }
+        }
+        return merged
+      })
+      setSearchPage(res.data.page || nextPage)
+      setSearchTotalPages(res.data.total_pages || searchTotalPages)
+    } catch (error) {
+      console.error('Search load more error:', error)
+    } finally {
+      setSearchLoadingMore(false)
+    }
+  }
+
+  const handleSearchFocus = () => {
+    const value = searchQuery.trim()
+    if (value.length < 3) return
+
+    if (searchResults.length > 0) {
+      setShowSearchResults(true)
+      return
+    }
+
+    void handleSearchInput(value)
+  }
+
+  const handleSearchResultsScroll = (event: UIEvent<HTMLDivElement>) => {
+    const el = event.currentTarget
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 80
+    if (nearBottom) {
+      void loadMoreSearchResults()
     }
   }
 
@@ -132,14 +282,20 @@ export const Layout = ({ children }: LayoutProps) => {
     const id = movie.kinopoisk_id ? `kp_${movie.kinopoisk_id}` : movie.id
     searchCommittedRef.current = true
     searchRequestIdRef.current++
-    navigate(`/movie/${id}`)
+    navigate(`/${id}`)
     setSearchQuery('')
     setShowSearchResults(false)
     setSearchResults([])
   }
 
   const getSearchPosterUrl = (movie: Movie) => {
-    const raw = movie.posterUrlPreview || movie.poster_path || ''
+    const movieAny = movie as any
+    const raw =
+      movieAny.posterUrlPreview ||
+      movieAny.posterUrl ||
+      movieAny.poster_url ||
+      movieAny.poster_path ||
+      ''
     const optimized = typeof raw === 'string' ? raw.replace('/kp_big/', '/kp_small/') : raw
     return getImageUrl(optimized)
   }
@@ -147,13 +303,13 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {isMobile && !mobileAppBannerDismissed && (
-        <Box sx={{ px: 1, pt: 1, backgroundColor: '#0f0f10' }}>
+        <Box sx={{ px: 1, pt: 1, backgroundColor: colors.bg }}>
           <Alert
             severity="info"
             sx={{
-              backgroundColor: '#121212',
-              color: '#fff',
-              border: '1px solid #222',
+              backgroundColor: colors.surface,
+              color: colors.text,
+              border: `1px solid ${colors.border}`,
               '& .MuiAlert-icon': { color: '#1976d2' },
               '& a': { color: '#90caf9', fontWeight: 700, textDecoration: 'none' },
             }}
@@ -168,7 +324,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   setMobileAppBannerDismissed(true)
                 }}
               >
-                <CloseIcon fontSize="inherit" sx={{ color: '#999' }} />
+                <CloseIcon fontSize="inherit" sx={{ color: colors.muted }} />
               </IconButton>
             }
           >
@@ -179,17 +335,18 @@ export const Layout = ({ children }: LayoutProps) => {
       )}
 
       {/* Top Header */}
-      <AppBar position="sticky" elevation={0} sx={{ backgroundColor: '#0f0f10', borderBottom: '1px solid #222' }}>
-        <Toolbar sx={{ justifyContent: 'space-between', py: 0.5, px: { xs: 1, sm: 2 }, gap: 1, minHeight: 'auto' }}>
+      <AppBar position="sticky" elevation={0} sx={{ backgroundColor: colors.header, borderBottom: `1px solid ${colors.border}` }}>
+        <Container maxWidth="xl">
+        <Toolbar sx={{ justifyContent: 'space-between', py: 0.35, px: { xs: 0.2, sm: 0.6 }, gap: 1, minHeight: 54 }}>
           {/* Logo */}
           <Box
             onClick={() => navigate('/')}
             sx={{
               cursor: 'pointer',
-              fontSize: { xs: '1rem', sm: '1.3rem' },
+              fontSize: { xs: '0.95rem', sm: '1.15rem' },
               fontWeight: 700,
               letterSpacing: '0em',
-              color: '#fff',
+              color: colors.text,
               transition: 'opacity 0.2s',
               fontFamily: '"Inter", sans-serif',
               flexShrink: 0,
@@ -197,37 +354,65 @@ export const Layout = ({ children }: LayoutProps) => {
                 opacity: 0.8,
               },
               '& .neo-text': {
-                color: '#fff',
+                color: colors.text,
               },
               '& .movies-text': {
-                color: '#ff0000',
+                color: colors.text,
               },
             }}
           >
             <span className="neo-text">Neo</span><span className="movies-text">Movies</span>
           </Box>
 
+          <Stack
+            direction="row"
+            spacing={1.6}
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              mr: 0.5,
+              ml: 0.5,
+              flexShrink: 0,
+            }}
+          >
+            {navItems.map((item) => (
+              <Button
+                key={item.path}
+                onClick={() => handleNavClick(item.path)}
+                sx={{
+                  color: location.pathname === item.path ? colors.text : colors.muted,
+                  p: 0,
+                  minWidth: 0,
+                  fontSize: '0.9rem',
+                  fontWeight: location.pathname === item.path ? 650 : 560,
+                  '&:hover': { color: colors.text, backgroundColor: 'transparent' },
+                }}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </Stack>
+
           {/* Search Bar - Center */}
-          <Box component="form" onSubmit={handleSearch} sx={{ position: 'relative', flex: 1, mx: { xs: 1, sm: 2 }, minWidth: 0, maxWidth: 450 }}>
+          <Box ref={searchBoxRef} component="form" onSubmit={handleSearch} sx={{ position: 'relative', flex: 1, mx: { xs: 0.5, sm: 1.1 }, minWidth: 0, maxWidth: 460 }}>
             <TextField
               fullWidth
               size="small"
               placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => handleSearchInput(e.target.value)}
-              margin="normal"
+              onFocus={handleSearchFocus}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  color: '#fff',
-                  backgroundColor: '#1a1a1a',
+                  color: colors.text,
+                  backgroundColor: colors.surface,
                   borderRadius: '10px',
-                  fontSize: { xs: '0.8rem', sm: '0.95rem' },
-                  height: 38,
+                  fontSize: { xs: '0.78rem', sm: '0.9rem' },
+                  height: 36,
                   '& fieldset': {
-                    borderColor: '#333',
+                    borderColor: colors.border,
                   },
                   '&:hover fieldset': {
-                    borderColor: '#555',
+                    borderColor: dark ? '#4b5563' : '#9ca3af',
                   },
                   '&.Mui-focused fieldset': {
                     borderColor: '#1976d2',
@@ -237,7 +422,7 @@ export const Layout = ({ children }: LayoutProps) => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon sx={{ color: '#666', mr: 0.5, fontSize: '1.1rem' }} />
+                    <SearchIcon sx={{ color: colors.muted, mr: 0.5, fontSize: '1.1rem' }} />
                   </InputAdornment>
                 ),
               }}
@@ -246,13 +431,14 @@ export const Layout = ({ children }: LayoutProps) => {
             {/* Search Results Dropdown */}
             {showSearchResults && (
               <Paper
+                onScroll={handleSearchResultsScroll}
                 sx={{
                   position: 'absolute',
                   top: '100%',
                   left: 0,
                   right: 0,
-                  backgroundColor: '#1a1a1a',
-                  border: '1px solid #333',
+                  backgroundColor: colors.surface,
+                  border: `1px solid ${colors.border}`,
                   borderTop: 'none',
                   borderRadius: '0 0 10px 10px',
                   maxHeight: 300,
@@ -265,7 +451,8 @@ export const Layout = ({ children }: LayoutProps) => {
                     <CircularProgress size={24} />
                   </Box>
                 ) : searchResults.length > 0 ? (
-                  searchResults.map((movie) => {
+                  <>
+                  {searchResults.map((movie) => {
                     const rating = (movie as any).rating || movie.vote_average || movie.ratingKinopoisk || 0
                     const year = movie.release_date ? new Date(movie.release_date).getFullYear() : movie.year
                     return (
@@ -276,10 +463,10 @@ export const Layout = ({ children }: LayoutProps) => {
                           display: 'flex',
                           gap: 1.5,
                           p: 1.5,
-                          borderBottom: '1px solid #222',
+                          borderBottom: `1px solid ${colors.border}`,
                           cursor: 'pointer',
                           '&:hover': {
-                            backgroundColor: '#222',
+                            backgroundColor: colors.hover,
                           },
                           '&:last-child': {
                             borderBottom: 'none',
@@ -302,12 +489,12 @@ export const Layout = ({ children }: LayoutProps) => {
                         />
                         <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                           <Box>
-                            <Box sx={{ color: '#fff', fontSize: '0.9rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                            <Box sx={{ color: colors.text, fontSize: '0.9rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                               {movie.title || movie.nameRu || movie.nameOriginal}
                             </Box>
                           </Box>
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-                            <Box sx={{ color: '#999', fontSize: '0.75rem' }}>
+                            <Box sx={{ color: colors.muted, fontSize: '0.75rem' }}>
                               {year}
                             </Box>
                             {rating > 0 && (
@@ -319,9 +506,15 @@ export const Layout = ({ children }: LayoutProps) => {
                         </Box>
                       </Box>
                     )
-                  })
+                  })}
+                  {searchLoadingMore && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 1.5 }}>
+                      <CircularProgress size={18} />
+                    </Box>
+                  )}
+                  </>
                 ) : (
-                  <Box sx={{ p: 2, textAlign: 'center', color: '#999', fontSize: '0.85rem' }}>
+                  <Box sx={{ p: 2, textAlign: 'center', color: colors.muted, fontSize: '0.85rem' }}>
                     Ничего не найдено
                   </Box>
                 )}
@@ -330,6 +523,33 @@ export const Layout = ({ children }: LayoutProps) => {
           </Box>
 
           {/* Right Actions */}
+          <IconButton
+            onClick={toggleMode}
+            size="small"
+            disableRipple
+            sx={{
+              color: colors.text,
+              border: `1px solid ${colors.border}`,
+              backgroundColor: colors.surface,
+              mr: 0.45,
+              width: 34,
+              height: 34,
+              '&:hover': { backgroundColor: colors.hover },
+              '&.Mui-focusVisible': {
+                outline: 'none',
+                boxShadow: 'none',
+                borderColor: colors.border,
+                },
+              '&:focus-visible': {
+                outline: 'none',
+              },
+              '& .MuiTouchRipple-root': { display: 'none' },
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            {dark ? <LightModeOutlinedIcon fontSize="small" /> : <DarkModeOutlinedIcon fontSize="small" />}
+          </IconButton>
+
           {userName ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
               <Button
@@ -337,12 +557,13 @@ export const Layout = ({ children }: LayoutProps) => {
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 0.5,
-                  color: '#fff',
+                  gap: 0.75,
+                  color: colors.text,
                   textTransform: 'none',
-                  fontSize: { xs: '0.7rem', sm: '0.85rem' },
-                  p: 0.3,
-                  '&:hover': { opacity: 0.8 },
+                  fontSize: { xs: '0.68rem', sm: '0.82rem' },
+                  p: { xs: 0.2, sm: 0.3 },
+                  borderRadius: 999,
+                  '&:hover': { backgroundColor: colors.hover },
                 }}
               >
                 {userAvatar ? (
@@ -350,10 +571,10 @@ export const Layout = ({ children }: LayoutProps) => {
                     component="img"
                     src={userAvatar}
                     referrerPolicy="no-referrer"
-                    sx={{ width: { xs: 26, sm: 30 }, height: { xs: 26, sm: 30 }, borderRadius: '50%', objectFit: 'cover', border: '1px solid #333' }}
+                    sx={{ width: { xs: 24, sm: 28 }, height: { xs: 24, sm: 28 }, borderRadius: '50%', objectFit: 'cover', border: `1px solid ${colors.border}` }}
                   />
                 ) : (
-                  <PersonIcon sx={{ width: { xs: 24, sm: 28 }, height: { xs: 24, sm: 28 }, color: '#1976d2' }} />
+                  <PersonIcon sx={{ width: { xs: 22, sm: 24 }, height: { xs: 22, sm: 24 }, color: colors.muted }} />
                 )}
                 <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{userName}</Box>
               </Button>
@@ -361,18 +582,35 @@ export const Layout = ({ children }: LayoutProps) => {
                 anchorEl={anchorEl}
                 open={Boolean(anchorEl)}
                 onClose={() => setAnchorEl(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                 sx={{
                   '& .MuiPaper-root': {
-                    backgroundColor: '#1a1a1a',
-                    color: '#fff',
-                    minWidth: 200,
+                    backgroundColor: colors.surface,
+                    color: colors.text,
+                    minWidth: 230,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 2.6,
+                    mt: 0.6,
+                    boxShadow: dark
+                      ? '0 14px 30px rgba(0,0,0,0.4)'
+                      : '0 10px 24px rgba(2,8,20,0.12)',
                   },
                 }}
               >
-                <MenuItem disabled sx={{ color: '#999' }}>
+                <Box sx={{ px: 1.6, pt: 1.1, pb: 0.85 }}>
+                  <Box sx={{ fontSize: '0.8rem', color: colors.muted, lineHeight: 1.3, wordBreak: 'break-all' }}>
                   {userEmail}
-                </MenuItem>
+                  </Box>
+                </Box>
+                <Divider sx={{ borderColor: colors.border }} />
                 <MenuItem
+                  sx={{
+                    py: 1,
+                    px: 1.6,
+                    fontSize: '0.98rem',
+                    '&:hover': { backgroundColor: colors.hover },
+                  }}
                   onClick={() => {
                     navigate('/profile')
                     setAnchorEl(null)
@@ -381,6 +619,13 @@ export const Layout = ({ children }: LayoutProps) => {
                   Профиль
                 </MenuItem>
                 <MenuItem
+                  sx={{
+                    py: 1,
+                    px: 1.6,
+                    fontSize: '0.98rem',
+                    color: '#ef4444',
+                    '&:hover': { backgroundColor: colors.hover },
+                  }}
                   onClick={() => {
                     clearAuthState()
                     setUserName(null)
@@ -389,7 +634,6 @@ export const Layout = ({ children }: LayoutProps) => {
                     setAnchorEl(null)
                     navigate('/')
                   }}
-                  sx={{ color: '#ff6b6b' }}
                 >
                   Выход
                 </MenuItem>
@@ -415,78 +659,38 @@ export const Layout = ({ children }: LayoutProps) => {
             </Button>
           )}
         </Toolbar>
-      </AppBar>
-
-      {/* Navigation Bar */}
-      <Box sx={{ backgroundColor: '#0f0f10', borderBottom: '1px solid #222', py: 0.75, overflowX: 'auto' }}>
-        <Container maxWidth="lg">
-          <Stack direction="row" spacing={{ xs: 1, sm: 3 }} sx={{ overflowX: 'auto', pb: 0.5 }}>
+        <Box
+          sx={{
+            display: { xs: 'grid', md: 'none' },
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+            gap: 0.6,
+            px: 0.2,
+            pb: 0.7,
+          }}
+        >
+          {navItems.map((item) => (
             <Button
+              key={`mobile-${item.path}`}
+              onClick={() => handleNavClick(item.path)}
               sx={{
-                color: '#999',
+                color: location.pathname === item.path ? colors.text : colors.muted,
+                minWidth: 0,
+                px: 0,
+                py: 0.2,
+                fontSize: '0.73rem',
+                fontWeight: location.pathname === item.path ? 650 : 560,
                 textTransform: 'none',
-                fontSize: { xs: '0.8rem', sm: '0.95rem' },
-                p: 0,
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                '&:hover': { color: '#fff' },
-              }}
-              onClick={() => navigate('/')}
-            >
-              Популярное
-            </Button>
-            <Button
-              sx={{
-                color: '#999',
-                textTransform: 'none',
-                fontSize: { xs: '0.7rem', sm: '0.95rem' },
-                p: 0,
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                '&:hover': { color: '#fff' },
-              }}
-              onClick={() => navigate('/movies-top')}
-            >
-              Топ Фильмов
-            </Button>
-            <Button
-              sx={{
-                color: '#999',
-                textTransform: 'none',
-                fontSize: { xs: '0.7rem', sm: '0.95rem' },
-                p: 0,
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                '&:hover': { color: '#fff' },
-              }}
-              onClick={() => navigate('/tv-top')}
-            >
-              Топ Сериалов
-            </Button>
-            <Button
-              sx={{
-                color: '#999',
-                textTransform: 'none',
-                fontSize: { xs: '0.8rem', sm: '0.95rem' },
-                p: 0,
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                '&:hover': { color: '#fff' },
-              }}
-              onClick={() => {
-                const token = localStorage.getItem('token')
-                if (!token) {
-                  navigate('/auth')
-                } else {
-                  navigate('/favorites')
-                }
+                whiteSpace: 'normal',
+                lineHeight: 1.15,
+                '&:hover': { color: colors.text, backgroundColor: 'transparent' },
               }}
             >
-              Избранное
+              {item.label}
             </Button>
-          </Stack>
+          ))}
+        </Box>
         </Container>
-      </Box>
+      </AppBar>
 
       {/* Main Content */}
       <Box
@@ -495,7 +699,7 @@ export const Layout = ({ children }: LayoutProps) => {
           flexGrow: 1,
           py: { xs: 2, sm: 4 },
           px: { xs: 1, sm: 0 },
-          backgroundColor: '#0f0f10',
+          backgroundColor: colors.bg,
           minHeight: '100%'
         }}
       >

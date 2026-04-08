@@ -21,8 +21,8 @@ export const MovieDetails = () => {
   const { id } = useParams<{ id: string }>()
   const [movie, setMovie] = useState<Movie | null>(null)
   const [loading, setLoading] = useState(true)
-  // Установка Collaps по умолчанию
-  const [selectedPlayer, setSelectedPlayer] = useState<'lumex' | 'collaps'>('collaps')
+  // Приоритет плееров: Alloha -> Collaps -> Lumex
+  const [selectedPlayer, setSelectedPlayer] = useState<'alloha' | 'lumex' | 'collaps'>('alloha')
   const [playerUrl, setPlayerUrl] = useState<string | null>(null)
   const [playerHtml, setPlayerHtml] = useState<string | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -60,9 +60,9 @@ export const MovieDetails = () => {
         const res = await moviesAPI.getMovieById(movieId)
         setMovie(res.data)
         
-        // Автозагрузка Collaps
+        // Автозагрузка Alloha как плеера по умолчанию
         setTimeout(() => {
-          loadPlayer(res.data, 'collaps')
+          loadPlayer(res.data, 'alloha')
         }, 500)
       } catch (error) {
         // silent fail
@@ -74,14 +74,17 @@ export const MovieDetails = () => {
     fetchData()
   }, [id])
 
-  const loadPlayer = async (movieData: any, player: 'lumex' | 'collaps') => {
+  const loadPlayer = async (movieData: any, player: 'alloha' | 'lumex' | 'collaps') => {
     try {
       const kpId = movieData.externalIds?.kp || movieData.kinopoisk_id || movieData.filmId
       
       if (!kpId) return
 
       let response = ''
-      if (player === 'lumex') {
+      if (player === 'alloha') {
+        const res = await playersAPI.getAllohaPlayer('kp', kpId)
+        response = res.data
+      } else if (player === 'lumex') {
         const res = await playersAPI.getLumexPlayer('kp', kpId)
         response = res.data
       } else if (player === 'collaps') {
@@ -113,7 +116,7 @@ export const MovieDetails = () => {
     }
   }
 
-  const handlePlayerChange = (player: 'lumex' | 'collaps') => {
+  const handlePlayerChange = (player: 'alloha' | 'lumex' | 'collaps') => {
     if (!movie) return
     setSelectedPlayer(player)
     loadPlayer(movie, player)
@@ -127,7 +130,8 @@ export const MovieDetails = () => {
     if (!movie) return
 
     try {
-      const movieId = typeof movie.id === 'string' ? parseInt(movie.id) : movie.id
+      const movieId = extractKpId(movie.externalIds?.kp || movie.kinopoisk_id || movie.id)
+      if (!movieId) return
       if (isFavorite) {
         await favoritesAPI.removeFromFavorites(movieId, 'movie')
       } else {
@@ -186,6 +190,7 @@ export const MovieDetails = () => {
               width: '100%',
               aspectRatio: '2/3',
               objectFit: 'cover',
+              borderRadius: '10px',
             }}
           />
         </Box>
@@ -230,13 +235,21 @@ export const MovieDetails = () => {
             {movie.overview || movie.description || 'Описание недоступно'}
           </Typography>
 
-          {/* Кнопки плееров: Collaps теперь первый */}
+          {/* Кнопки плееров: Alloha -> Collaps -> Lumex */}
           <Box sx={{ mt: 4 }}>
             <Typography variant="h6" gutterBottom>
               Смотреть онлайн
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 3, gap: 2, alignItems: { xs: 'stretch', sm: 'center' } }}>
               <Stack direction="row" sx={{ gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Button
+                  variant={selectedPlayer === 'alloha' ? 'contained' : 'outlined'}
+                  startIcon={<PlayArrowIcon />}
+                  onClick={() => handlePlayerChange('alloha')}
+                  size="small"
+                >
+                  Alloha
+                </Button>
                 <Button
                   variant={selectedPlayer === 'collaps' ? 'contained' : 'outlined'}
                   startIcon={<PlayArrowIcon />}
@@ -256,39 +269,48 @@ export const MovieDetails = () => {
               </Stack>
               <Box sx={{ display: { xs: 'block', sm: 'inline' } }}>
                 <TorrentSelector
-                  imdbId={movie.imdbId || movie.imdb_id || movie.externalIds?.imdb}
+                  kpId={movie.externalIds?.kp || movie.kinopoisk_id || movie.id}
                   type={movie.type === 'tv' || movie.media_type === 'tv' ? 'tv' : 'movie'}
                   title={title}
-                  originalTitle={movie.originalTitle || movie.original_title}
                 />
               </Box>
             </Stack>
 
             {playerUrl && !playerUrl.includes('blob:') && (
-              <Box
-                component="iframe"
-                src={playerUrl}
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                sx={{
-                  width: '100%',
-                  height: { xs: 300, sm: 400, md: 600 },
-                  border: 'none',
-                }}
-              />
+              <Box sx={{ borderRadius: '10px', overflow: 'hidden', backgroundColor: '#000' }}>
+                <Box
+                  component="iframe"
+                  src={playerUrl}
+                  allowFullScreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  sx={{
+                    width: '100%',
+                    height: { xs: 280, sm: 360, md: 520 },
+                    border: 'none',
+                    display: 'block',
+                    borderRadius: '10px',
+                    clipPath: 'inset(0 round 10px)',
+                  }}
+                />
+              </Box>
             )}
             {playerHtml && (
-              <iframe
-                srcDoc={playerHtml}
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                style={{
-                  width: '100%',
-                  height: window.innerWidth < 600 ? 300 : window.innerWidth < 960 ? 400 : 600,
-                  border: 'none',
-                  backgroundColor: '#000',
-                }}
-              />
+              <Box sx={{ borderRadius: '10px', overflow: 'hidden', backgroundColor: '#000' }}>
+                <iframe
+                  srcDoc={playerHtml}
+                  allowFullScreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  style={{
+                    width: '100%',
+                    height: window.innerWidth < 600 ? 280 : window.innerWidth < 960 ? 360 : 520,
+                    border: 'none',
+                    backgroundColor: '#000',
+                    display: 'block',
+                    borderRadius: '10px',
+                    clipPath: 'inset(0 round 10px)',
+                  }}
+                />
+              </Box>
             )}
           </Box>
         </Box>
@@ -296,3 +318,8 @@ export const MovieDetails = () => {
     </Box>
   )
 }
+  const extractKpId = (value: unknown): string => {
+    if (typeof value === 'number') return String(value)
+    if (typeof value === 'string') return value.replace(/^kp_/, '')
+    return ''
+  }

@@ -65,7 +65,7 @@ export const Search = () => {
 
   const handleResultClick = (item: Movie) => {
     const id = item.kinopoisk_id ? `kp_${item.kinopoisk_id}` : item.id
-    navigate(`/movie/${id}`)
+    navigate(`/${id}`)
   }
 
   return (
