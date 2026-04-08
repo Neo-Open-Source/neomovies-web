@@ -28,6 +28,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     middlewareMode: false,
   },
 })

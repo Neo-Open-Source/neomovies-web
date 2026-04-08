@@ -277,7 +277,7 @@ export const MovieDetails = () => {
             </Stack>
 
             {playerUrl && !playerUrl.includes('blob:') && (
-              <Box sx={{ borderRadius: '10px', overflow: 'hidden', backgroundColor: '#000' }}>
+              <Box sx={{ borderRadius: '10px', backgroundColor: '#000' }}>
                 <Box
                   component="iframe"
                   src={playerUrl}
@@ -285,29 +285,27 @@ export const MovieDetails = () => {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   sx={{
                     width: '100%',
-                    height: { xs: 280, sm: 360, md: 520 },
+                    height: { xs: 320, sm: 420, md: 560 },
                     border: 'none',
                     display: 'block',
                     borderRadius: '10px',
-                    clipPath: 'inset(0 round 10px)',
                   }}
                 />
               </Box>
             )}
             {playerHtml && (
-              <Box sx={{ borderRadius: '10px', overflow: 'hidden', backgroundColor: '#000' }}>
+              <Box sx={{ borderRadius: '10px', backgroundColor: '#000' }}>
                 <iframe
                   srcDoc={playerHtml}
                   allowFullScreen
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   style={{
                     width: '100%',
-                    height: window.innerWidth < 600 ? 280 : window.innerWidth < 960 ? 360 : 520,
+                    height: window.innerWidth < 600 ? 320 : window.innerWidth < 960 ? 420 : 560,
                     border: 'none',
                     backgroundColor: '#000',
                     display: 'block',
                     borderRadius: '10px',
-                    clipPath: 'inset(0 round 10px)',
                   }}
                 />
               </Box>

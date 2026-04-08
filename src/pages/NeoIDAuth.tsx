@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Box, CircularProgress, Typography, Button } from '@mui/material'
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Paper,
+  Stack,
+  Typography,
+} from '@mui/material'
+import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded'
+import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded'
 import { apiClient, setAuthTokens } from '../api/client'
 
 const NEO_ID_URL = (import.meta.env.VITE_NEO_ID_URL || 'https://id.neomovies.ru').replace(/\/$/, '')
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1$/, '')
 
 function storeTokens(token: string, refreshToken: string, user: any) {
   setAuthTokens(token, refreshToken)
@@ -15,8 +25,19 @@ function storeTokens(token: string, refreshToken: string, user: any) {
   window.dispatchEvent(new Event('auth-changed'))
 }
 
+const humanizeError = (err: any): string => {
+  const serverMessage = err?.response?.data?.error || err?.response?.data?.message
+  if (serverMessage) return String(serverMessage)
+
+  if (err?.message === 'Network Error') {
+    return 'Network Error: API is unreachable. If you test on mobile, set VITE_API_URL to your LAN host (example: http://192.168.1.50:3001) and make sure backend is running.'
+  }
+
+  return err?.message || 'Failed to complete Neo ID sign in'
+}
+
 async function exchangeNeoToken(neoToken: string, neoRefresh: string): Promise<void> {
-  const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/callback`, {
+  const resp = await apiClient.post('/api/v1/auth/neo-id/callback', {
     access_token: neoToken,
     refresh_token: neoRefresh || '',
   })
@@ -36,47 +57,49 @@ export const NeoIDAuth = () => {
   const popupRef = useRef<Window | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // If already logged in — go home
   useEffect(() => {
     if (localStorage.getItem('token')) navigate('/', { replace: true })
-  }, [])
+  }, [navigate])
 
-  // Handle postMessage from popup
   useEffect(() => {
     const onMessage = async (e: MessageEvent) => {
       if (e.data?.type !== 'neo_id_auth') return
       const { access_token, refresh_token } = e.data
-      if (!access_token) { setError('No token received'); setStatus('error'); return }
+      if (!access_token) {
+        setError('No token received from Neo ID')
+        setStatus('error')
+        return
+      }
+
       try {
         setStatus('idle')
         await exchangeNeoToken(access_token, refresh_token || '')
         navigate('/', { replace: true })
       } catch (err: any) {
-        setError(err?.response?.data?.error || err?.message || 'Failed to complete Neo ID sign in')
+        setError(humanizeError(err))
         setStatus('error')
       }
     }
+
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
   }, [navigate])
 
-  // Handle pending token (popup was blocked → user came back via redirect)
   useEffect(() => {
     const pending = localStorage.getItem('neo_id_pending_token')
     const pendingRefresh = localStorage.getItem('neo_id_pending_refresh')
-    if (pending) {
-      localStorage.removeItem('neo_id_pending_token')
-      localStorage.removeItem('neo_id_pending_refresh')
-      exchangeNeoToken(pending, pendingRefresh || '')
-        .then(() => navigate('/', { replace: true }))
-        .catch((err: any) => {
-          setError(err?.response?.data?.error || err?.message || 'Failed to complete Neo ID sign in')
-          setStatus('error')
-        })
-    }
+    if (!pending) return
+
+    localStorage.removeItem('neo_id_pending_token')
+    localStorage.removeItem('neo_id_pending_refresh')
+    exchangeNeoToken(pending, pendingRefresh || '')
+      .then(() => navigate('/', { replace: true }))
+      .catch((err: any) => {
+        setError(humanizeError(err))
+        setStatus('error')
+      })
   }, [navigate])
 
-  // Handle token in URL hash (redirect flow)
   useEffect(() => {
     const hash = window.location.hash
     const search = window.location.search
@@ -100,13 +123,15 @@ export const NeoIDAuth = () => {
     exchangeNeoToken(token, refresh)
       .then(() => navigate('/', { replace: true }))
       .catch((err: any) => {
-        setError(err?.response?.data?.error || err?.message || 'Failed to complete Neo ID sign in')
+        setError(humanizeError(err))
         setStatus('error')
       })
   }, [navigate])
 
   useEffect(() => {
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
   }, [])
 
   const openPopup = async () => {
@@ -118,8 +143,7 @@ export const NeoIDAuth = () => {
       localStorage.setItem('neo_id_state', state)
       const callbackURL = `${window.location.origin}/auth/neo-id/callback`
 
-      // Get login URL via neomovies-api backend (keeps API key server-side)
-      const resp = await apiClient.post(`${API_URL}/api/v1/auth/neo-id/login`, {
+      const resp = await apiClient.post('/api/v1/auth/neo-id/login', {
         redirect_url: callbackURL,
         state,
         mode: 'popup',
@@ -130,19 +154,19 @@ export const NeoIDAuth = () => {
 
       const loginURL = rawURL.startsWith('/') ? `${NEO_ID_URL}${rawURL}` : rawURL
 
-      const finalURL = loginURL
-
-      // Open popup
-      const w = 480, h = 640
+      const w = 480
+      const h = 680
       const left = window.screenX + (window.outerWidth - w) / 2
       const top = window.screenY + (window.outerHeight - h) / 2
+
       const popup = window.open(
-        finalURL, 'neo_id_auth',
-        `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
+        loginURL,
+        'neo_id_auth',
+        `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`,
       )
 
       if (!popup) {
-        window.location.href = finalURL
+        window.location.href = loginURL
         return
       }
 
@@ -150,62 +174,111 @@ export const NeoIDAuth = () => {
       setStatus('waiting')
 
       timerRef.current = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(timerRef.current!)
-          setStatus((s) => s === 'waiting' ? 'idle' : s)
-        }
+        if (!popup.closed) return
+        clearInterval(timerRef.current!)
+        setStatus((s) => (s === 'waiting' ? 'idle' : s))
       }, 500)
     } catch (err: any) {
-      setError(err?.message || 'Failed to open Neo ID')
+      setError(humanizeError(err))
       setStatus('error')
     }
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Box sx={{ textAlign: 'center', maxWidth: 360, px: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: '#fff' }}>
-          Neo<span style={{ color: '#e53935' }}>Movies</span>
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#888', mb: 4 }}>
-          Sign in with your Neo ID account
-        </Typography>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'grid',
+        placeItems: 'center',
+        px: 2,
+        py: 6,
+        background:
+          'radial-gradient(1200px 500px at 20% -20%, rgba(229,57,53,0.16), transparent), radial-gradient(1000px 500px at 120% 0%, rgba(21,101,192,0.18), transparent), #06080e',
+      }}
+    >
+      <Paper
+        elevation={0}
+        sx={{
+          width: '100%',
+          maxWidth: 460,
+          borderRadius: 4,
+          p: { xs: 3, sm: 4 },
+          border: '1px solid rgba(148,163,184,0.2)',
+          background: 'linear-gradient(180deg, rgba(10,14,22,0.94) 0%, rgba(8,12,19,0.9) 100%)',
+          backdropFilter: 'blur(4px)',
+        }}
+      >
+        <Stack spacing={2.2}>
+          <Chip
+            icon={<SecurityRoundedIcon />}
+            label="Secure Neo ID"
+            sx={{
+              width: 'fit-content',
+              height: 30,
+              color: '#cbd5e1',
+              borderColor: 'rgba(148,163,184,0.35)',
+              bgcolor: 'rgba(15,23,42,0.45)',
+            }}
+            variant="outlined"
+          />
 
-        {status === 'waiting' ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <CircularProgress size={32} sx={{ color: '#e53935' }} />
-            <Typography variant="body2" sx={{ color: '#888' }}>
-              Complete sign in in the popup window
-            </Typography>
-            <Button
-              variant="text" size="small"
-              onClick={() => popupRef.current?.focus()}
-              sx={{ color: '#666', fontSize: '0.75rem' }}
-            >
-              Click here if the window is hidden
-            </Button>
-          </Box>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {error && (
-              <Typography variant="body2" sx={{ color: '#e53935', mb: 1, fontSize: '0.8rem' }}>
-                {error}
-              </Typography>
-            )}
+          <Typography variant="h4" sx={{ color: '#f8fafc', fontWeight: 800, lineHeight: 1.1 }}>
+            Sign in to{' '}
+            <Box component="span" sx={{ color: '#ef4444' }}>
+              NeoMovies
+            </Box>
+          </Typography>
+
+          <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+            Use your Neo ID account to sync favorites, continue watching and access profile features.
+          </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ borderRadius: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          {status === 'waiting' ? (
+            <Stack spacing={1.5} alignItems="flex-start">
+              <Stack direction="row" spacing={1.2} alignItems="center">
+                <CircularProgress size={22} sx={{ color: '#ef4444' }} />
+                <Typography sx={{ color: '#e2e8f0', fontSize: '0.95rem' }}>
+                  Complete sign in in the popup window
+                </Typography>
+              </Stack>
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => popupRef.current?.focus()}
+                sx={{ color: '#93c5fd', textTransform: 'none', px: 0.25 }}
+              >
+                Focus popup
+              </Button>
+            </Stack>
+          ) : (
             <Button
               variant="contained"
               fullWidth
-              disabled={status === 'opening'}
               onClick={openPopup}
-              sx={{ bgcolor: '#e53935', '&:hover': { bgcolor: '#c62828' }, height: 44, fontWeight: 600 }}
+              disabled={status === 'opening'}
+              endIcon={status === 'opening' ? undefined : <ArrowOutwardRoundedIcon />}
+              sx={{
+                mt: 0.5,
+                height: 50,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontSize: '0.98rem',
+                fontWeight: 700,
+                bgcolor: '#dc2626',
+                '&:hover': { bgcolor: '#b91c1c' },
+              }}
             >
-              {status === 'opening'
-                ? <CircularProgress size={20} sx={{ color: '#fff' }} />
-                : 'Sign in with Neo ID'}
+              {status === 'opening' ? <CircularProgress size={22} sx={{ color: '#fff' }} /> : 'Continue with Neo ID'}
             </Button>
-          </Box>
-        )}
-      </Box>
+          )}
+        </Stack>
+      </Paper>
     </Box>
   )
 }

@@ -1,5 +1,37 @@
 import axios from 'axios'
-const API_URL = import.meta.env.VITE_API_URL
+
+const resolveApiBaseUrl = (): string => {
+  const raw = (import.meta.env.VITE_API_URL || '').trim()
+  if (!raw) return ''
+
+  try {
+    const parsed = new URL(raw)
+    const isLocalHost =
+      parsed.hostname === 'localhost' ||
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === '::1'
+
+    // If app is opened on mobile via LAN URL, but API env points to localhost,
+    // use current device-accessible host with the same API port.
+    if (
+      typeof window !== 'undefined' &&
+      isLocalHost &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      const mobileUrl = new URL(parsed.toString())
+      mobileUrl.hostname = window.location.hostname
+      mobileUrl.protocol = window.location.protocol
+      return mobileUrl.toString().replace(/\/$/, '')
+    }
+
+    return parsed.toString().replace(/\/$/, '')
+  } catch {
+    return raw.replace(/\/$/, '')
+  }
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()
 const AUTH_REFRESH_INTERVAL_MS = 15 * 60 * 1000
 
 let refreshPromise: Promise<string | null> | null = null
@@ -8,7 +40,7 @@ let visibilityHandler: (() => void) | null = null
 
 // Создание экземпляра Axios с базовыми настройками
 export const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL || undefined,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -112,7 +144,7 @@ export const refreshToken = async (): Promise<string | null> => {
       return null
     }
 
-    const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, {
+    const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
       refreshToken: refreshTokenValue
     })
 
@@ -227,12 +259,12 @@ export const getImageUrl = (path: string | null | undefined): string => {
   if (kpMatch) {
     const kind = kpMatch[1].toLowerCase()
     const id = kpMatch[2]
-    return `${API_URL}/api/v1/images/${kind}/${id}`
+    return `${API_BASE_URL}/api/v1/images/${kind}/${id}`
   }
 
   if (path.includes('/api/v1/images/')) {
     if (path.startsWith('http://') || path.startsWith('https://')) return path
-    return `${API_URL}${path}`
+    return `${API_BASE_URL}${path}`
   }
 
   if (path.startsWith('/images/')) {
@@ -241,9 +273,9 @@ export const getImageUrl = (path: string | null | undefined): string => {
     const rawId = parts.slice(2).join('/')
     const id = rawId.replace(/\.jpg$/i, '')
     if (kind && id) {
-      return `${API_URL}/api/v1/images/${kind}/${id}`
+      return `${API_BASE_URL}/api/v1/images/${kind}/${id}`
     }
-    return `${API_URL}/api/v1${path}`
+    return `${API_BASE_URL}/api/v1${path}`
   }
 
   if (path.startsWith('http://') || path.startsWith('https://')) return path
