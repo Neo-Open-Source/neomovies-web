@@ -24,6 +24,7 @@ export const MovieDetails = () => {
   const [selectedPlayer, setSelectedPlayer] = useState<'cdn' | 'alloha' | 'lumex' | 'collaps'>('cdn')
   const [playerUrl, setPlayerUrl] = useState<string | null>(null)
   const [playerHtml, setPlayerHtml] = useState<string | null>(null)
+  const [cdnAvailable, setCdnAvailable] = useState<boolean>(true)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
@@ -78,10 +79,27 @@ export const MovieDetails = () => {
       const kpId = movieData.externalIds?.kp || movieData.kinopoisk_id || movieData.filmId
       if (!kpId) return
 
-      // CDN плеер — используем src напрямую, не загружаем HTML
+      // CDN плеер — проверяем доступность, потом ставим src
       if (player === 'cdn') {
         const apiBase = import.meta.env.VITE_API_URL || ''
-        setPlayerUrl(`${apiBase}/api/v1/players/cdn/kp/${kpId}`)
+        const cdnUrl = `${apiBase}/api/v1/players/cdn/kp/${kpId}`
+        try {
+          const check = await fetch(cdnUrl)
+          const ct = check.headers.get('content-type') || ''
+          if (!check.ok || ct.includes('application/json')) {
+            // CDN недоступен — скрываем кнопку и переключаемся на Alloha
+            setCdnAvailable(false)
+            setSelectedPlayer('alloha')
+            loadPlayer(movieData, 'alloha')
+            return
+          }
+        } catch {
+          setCdnAvailable(false)
+          setSelectedPlayer('alloha')
+          loadPlayer(movieData, 'alloha')
+          return
+        }
+        setPlayerUrl(cdnUrl)
         setPlayerHtml(null)
         return
       }
@@ -248,14 +266,16 @@ export const MovieDetails = () => {
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 3, gap: 2, alignItems: { xs: 'stretch', sm: 'center' } }}>
               <Stack direction="row" sx={{ gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Button
-                  variant={selectedPlayer === 'cdn' ? 'contained' : 'outlined'}
-                  startIcon={<PlayArrowIcon />}
-                  onClick={() => handlePlayerChange('cdn')}
-                  size="small"
-                >
-                  Плеер 1
-                </Button>
+                {cdnAvailable && (
+                  <Button
+                    variant={selectedPlayer === 'cdn' ? 'contained' : 'outlined'}
+                    startIcon={<PlayArrowIcon />}
+                    onClick={() => handlePlayerChange('cdn')}
+                    size="small"
+                  >
+                    Плеер 1
+                  </Button>
+                )}
                 <Button
                   variant={selectedPlayer === 'alloha' ? 'contained' : 'outlined'}
                   startIcon={<PlayArrowIcon />}
