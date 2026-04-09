@@ -9,12 +9,25 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Divider,
+  useTheme,
 } from '@mui/material'
 import LanguageIcon from '@mui/icons-material/Language'
 
 export const Terms = () => {
+  const theme = useTheme()
+  const dark = theme.palette.mode === 'dark'
   const navigate = useNavigate()
   const [lang, setLang] = useState<'ru' | 'en'>('ru')
+
+  const colors = {
+    pageBg: dark ? '#121212' : '#f4f5f7',
+    paperBg: dark ? '#1e1e1e' : '#ffffff',
+    text: dark ? '#ffffff' : '#111827',
+    muted: dark ? '#cccccc' : '#4b5563',
+    subtitle: dark ? '#9ca3af' : '#6b7280',
+    border: dark ? '#333333' : '#e5e7eb',
+    buttonBorder: dark ? '#555555' : '#d1d5db',
+  }
 
   const handleLanguageChange = (_event: React.MouseEvent<HTMLElement>, newLang: 'ru' | 'en') => {
     if (newLang !== null) {
@@ -122,9 +135,9 @@ export const Terms = () => {
   const t = content[lang]
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#121212', py: { xs: 2, sm: 4 } }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: colors.pageBg, py: { xs: 2, sm: 4 } }}>
       <Container maxWidth="lg">
-        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, backgroundColor: '#1e1e1e', color: '#fff' }}>
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, backgroundColor: colors.paperBg, color: colors.text }}>
           {/* Language Selector */}
           <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
             <LanguageIcon sx={{ color: 'primary.main', fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
@@ -138,6 +151,20 @@ export const Terms = () => {
               onChange={handleLanguageChange}
               aria-label="language"
               size="small"
+              sx={{
+                '& .MuiToggleButton-root': {
+                  color: colors.text,
+                  borderColor: colors.buttonBorder,
+                  backgroundColor: 'transparent',
+                },
+                '& .MuiToggleButton-root.Mui-selected': {
+                  color: dark ? '#fff' : '#111827',
+                  backgroundColor: dark ? '#2a2a2a' : '#eef2ff',
+                },
+                '& .MuiToggleButton-root.Mui-selected:hover': {
+                  backgroundColor: dark ? '#343434' : '#e0e7ff',
+                },
+              }}
             >
               <ToggleButton value="ru" aria-label="russian" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Русский
@@ -155,7 +182,7 @@ export const Terms = () => {
             <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               {t.title}
             </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+            <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, color: colors.subtitle }}>
               {t.subtitle}
             </Typography>
           </Box>
@@ -164,11 +191,11 @@ export const Terms = () => {
           <Box sx={{ mb: 3, lineHeight: 1.6 }}>
             {t.sections.map((section, index) => (
               <Box key={index} sx={{ mb: 2 }}>
-                <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 1, color: '#fff', fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
+                <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 1, color: colors.text, fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
                   {section.title}
                 </Typography>
                 {section.text.split('\n\n').map((paragraph, pIndex) => (
-                  <Typography key={pIndex} variant="body2" sx={{ mb: 0.75, color: '#ccc', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                  <Typography key={pIndex} variant="body2" sx={{ mb: 0.75, color: colors.muted, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                     {paragraph}
                   </Typography>
                 ))}
@@ -176,13 +203,13 @@ export const Terms = () => {
                   <>
                     <Box component="ul" sx={{ pl: 2, mb: 0.75 }}>
                       {section.list.map((item, liIndex) => (
-                        <Typography key={liIndex} component="li" variant="body2" sx={{ mb: 0.3, color: '#ccc', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                        <Typography key={liIndex} component="li" variant="body2" sx={{ mb: 0.3, color: colors.muted, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                           {item}
                         </Typography>
                       ))}
                     </Box>
                     {section.afterList && (
-                      <Typography variant="body2" sx={{ mb: 0.75, color: '#ccc', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                      <Typography variant="body2" sx={{ mb: 0.75, color: colors.muted, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                         {section.afterList}
                       </Typography>
                     )}
@@ -192,14 +219,14 @@ export const Terms = () => {
             ))}
           </Box>
 
-          <Divider sx={{ my: 3, borderColor: '#333' }} />
+          <Divider sx={{ my: 3, borderColor: colors.border }} />
 
           {/* Actions */}
           <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
             <Button 
               variant="outlined" 
               onClick={handleDecline} 
-              sx={{ color: '#ccc', borderColor: '#555', fontSize: { xs: '0.8rem', sm: '0.875rem' }, width: { xs: '100%', sm: 'auto' } }}
+              sx={{ color: colors.muted, borderColor: colors.buttonBorder, fontSize: { xs: '0.8rem', sm: '0.875rem' }, width: { xs: '100%', sm: 'auto' } }}
             >
               {t.decline}
             </Button>
@@ -214,8 +241,8 @@ export const Terms = () => {
           </Box>
 
           {/* Footer */}
-          <Box sx={{ mt: 3, textAlign: 'center', borderTop: '1px solid #333', pt: 2 }}>
-            <Typography variant="caption" sx={{ color: '#999', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+          <Box sx={{ mt: 3, textAlign: 'center', borderTop: `1px solid ${colors.border}`, pt: 2 }}>
+            <Typography variant="caption" sx={{ color: colors.subtitle, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
               {t.footer}
             </Typography>
           </Box>
