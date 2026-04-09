@@ -43,5 +43,13 @@ export const playersAPI = {
       params: { season, episode },
       timeout: 30000,
     })
-  }
+  },
+
+  // CDN плеер (Плеер 1) — наш собственный HLS плеер
+  getCdnPlayer(kpId: string | number, season?: number, episode?: number) {
+    return apiClient.get(`/api/v1/players/cdn/kp/${kpId}`, {
+      params: { season, episode },
+      timeout: 30000,
+    })
+  },
 }
