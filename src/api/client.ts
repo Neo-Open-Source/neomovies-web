@@ -32,7 +32,7 @@ const resolveApiBaseUrl = (): string => {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl()
-const AUTH_REFRESH_INTERVAL_MS = 15 * 60 * 1000
+const AUTH_REFRESH_INTERVAL_MS = 50 * 60 * 1000 // refresh every 50 min (access token TTL is 1h)
 
 let refreshPromise: Promise<string | null> | null = null
 let refreshTimer: number | null = null
@@ -174,6 +174,20 @@ export const refreshToken = async (): Promise<string | null> => {
   return result
 }
 
+// Returns true if the stored access token is expired or will expire within the next `thresholdSec` seconds
+const isAccessTokenExpiredOrExpiring = (thresholdSec = 120): boolean => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return true
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const exp: number = payload.exp
+    if (!exp) return true
+    return Date.now() / 1000 >= exp - thresholdSec
+  } catch {
+    return true
+  }
+}
+
 export const startAuthSessionKeepAlive = () => {
   if (refreshTimer !== null) {
     clearInterval(refreshTimer)
@@ -184,8 +198,8 @@ export const startAuthSessionKeepAlive = () => {
     visibilityHandler = null
   }
 
-  // Refresh on app start if user has a refresh token
-  if (localStorage.getItem('refreshToken')) {
+  // On app start: refresh only if access token is expired/expiring soon
+  if (localStorage.getItem('refreshToken') && isAccessTokenExpiredOrExpiring()) {
     void refreshToken()
   }
 
@@ -196,7 +210,8 @@ export const startAuthSessionKeepAlive = () => {
   }, AUTH_REFRESH_INTERVAL_MS)
 
   visibilityHandler = () => {
-    if (document.visibilityState === 'visible' && localStorage.getItem('refreshToken')) {
+    // On tab focus: refresh only if token is expired or expiring within 2 minutes
+    if (document.visibilityState === 'visible' && localStorage.getItem('refreshToken') && isAccessTokenExpiredOrExpiring()) {
       void refreshToken()
     }
   }
