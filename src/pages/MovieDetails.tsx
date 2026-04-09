@@ -78,11 +78,16 @@ export const MovieDetails = () => {
       const kpId = movieData.externalIds?.kp || movieData.kinopoisk_id || movieData.filmId
       if (!kpId) return
 
-      let response = ''
+      // CDN плеер — используем src напрямую, не загружаем HTML
       if (player === 'cdn') {
-        const res = await playersAPI.getCdnPlayer(kpId)
-        response = res.data
-      } else if (player === 'alloha') {
+        const apiBase = import.meta.env.VITE_API_URL || ''
+        setPlayerUrl(`${apiBase}/api/v1/players/cdn/kp/${kpId}`)
+        setPlayerHtml(null)
+        return
+      }
+
+      let response = ''
+      if (player === 'alloha') {
         const res = await playersAPI.getAllohaPlayer('kp', kpId)
         response = res.data
       } else if (player === 'lumex') {
