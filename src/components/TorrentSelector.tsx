@@ -239,7 +239,7 @@ export const TorrentSelector = ({ kpId, type, title }: TorrentSelectorProps) => 
                         </IconButton>
                         <IconButton
                           edge="end"
-                          href={`magnet:?${torrent.magnet}`}
+                          href={torrent.magnet}
                           title="Открыть в торрент клиенте"
                         >
                           <BsMagnetFill style={{ fontSize: '0.875rem' }} />
