@@ -18,11 +18,9 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
   const [isFavorite, setIsFavorite] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  
   const title = movie.title || movie.name || movie.nameRu || movie.nameOriginal || 'Unknown'
   const rating = (movie as any).rating || movie.vote_average || movie.ratingKinopoisk || 0
   const posterPath = movie.poster_path || movie.posterUrlPreview || movie.posterUrl
-
   const getKpId = (): string => {
     const src = movie.kinopoisk_id || movie.id
     if (typeof src === 'number') return String(src)
@@ -35,39 +33,49 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
     setIsLoggedIn(!!token)
   }, [])
 
+  // Проверяем статус избранного из кеша
   useEffect(() => {
     const checkFavorite = () => {
       const favorite = favoritesAPI.checkIsFavorite(movie.id, 'movie')
       setIsFavorite(favorite)
     }
+
     checkFavorite()
+
+    // Подписываемся на изменения кеша
     const unsubscribe = favoritesAPI.subscribe(() => {
       checkFavorite()
     })
+
     return () => unsubscribe()
   }, [movie.id])
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!isLoggedIn) return
+
+    if (!isLoggedIn) {
+      return
+    }
+
     try {
       setIsUpdating(true)
-      const movieIdNum = getKpId()
-      if (!movieIdNum) return
-      if (isFavorite) {
-        await favoritesAPI.removeFromFavorites(movieIdNum, 'movie')
-      } else {
-        await favoritesAPI.addToFavorites(movieIdNum, 'movie', {
-          title,
-          nameRu: title,
-          nameEn: movie.original_title || '',
-          posterPath,
-          year: movie.release_date ? new Date(movie.release_date).getFullYear() : 0,
+    const movieIdNum = getKpId()
+    if (!movieIdNum) return
+    if (isFavorite) {
+      await favoritesAPI.removeFromFavorites(movieIdNum, 'movie')
+    } else {
+      await favoritesAPI.addToFavorites(movieIdNum, 'movie', {
+        title,
+        nameRu: title,
+        nameEn: movie.original_title || '',
+        posterPath,
+        year: movie.release_date ? new Date(movie.release_date).getFullYear() : 0,
         })
       }
+      // Состояние обновится через подписку на кеш
     } catch (error) {
-      console.error(error)
-      alert('Ошибка')
+      console.error('Error updating favorite:', error)
+      alert('Ошибка при обновлении избранного')
     } finally {
       setIsUpdating(false)
     }
@@ -79,6 +87,8 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
       sx={{
         cursor: 'pointer',
         width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -131,11 +141,7 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
             right: 0,
             bottom: 0,
             p: 1.4,
-            background: 'linear-gradient(180deg, rgba(5,8,14,0.0) 0%, rgba(5,8,14,0.85) 60%, rgba(5,8,14,0.95) 100%)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            minHeight: 100,
+            background: 'linear-gradient(180deg, rgba(5,8,14,0.0) 0%, rgba(5,8,14,0.72) 50%, rgba(5,8,14,0.92) 100%)',
           }}
         >
           <Typography
@@ -149,13 +155,14 @@ export const MovieCard = ({ movie, onClick, hideFavoriteButton = false }: MovieC
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
-              mb: 0.5,
+              minHeight: '2.4em',
+              mb: 0.7,
             }}
           >
             {title}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Rating value={rating / 2} readOnly size="small" precision={0.1} />
+            <Rating value={rating / 2} readOnly size="small" />
             <Typography variant="body2" sx={{ color: '#e5e7eb', fontWeight: 600 }}>
               {rating.toFixed(1)}
             </Typography>
